@@ -14,7 +14,7 @@ make sure you also have the following route, create if not exist (val should be 
 **mmsegmentation->data->cityscapes->gtFine->val**
 
 Next, one can download the two other files in the repository - test_with_logs.py, run_networks.py.
-Place the two files in the following route: <br> 
+Place the two files in the following route:
 **mmsegmentation->tools**
 
 run_networks.py is our main file and it runs the desired networks in all of Jettson's power modes.
