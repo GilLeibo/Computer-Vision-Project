@@ -33,4 +33,4 @@ For each network:<br>
 - Graph of GPU power consumption VS time<br>
 
 Inferences data file:<br> 
-- Excel file which organizes the AVG RAM consumption, AVG GPU power consumption for each of the networks and each power mode.
+- Excel file which organizes the average RAM consumption, average GPU power consumption for each of the networks and each power mode.
