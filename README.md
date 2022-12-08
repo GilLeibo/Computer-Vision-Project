@@ -20,8 +20,8 @@ run_networks.py is our main file and it runs the desired networks in all of Jett
 Before running the file, make sure your working directory is mmsegmentation.
 Inside the file, place the paths to the configs and checkpoints of the networks you want to run. Make sure they are placed in corresponding places in the lists. You should also check you downloaded the checkpoints and configs from mmsegmentation website in the "Model Zoo Statistics": https://mmsegmentation.readthedocs.io/en/latest/modelzoo_statistics.htmly and placed them in the mmsegmentation->checkpoints and mmsegmentation->configs folders.
 
-Switching between 10W power mode to any other power mode, requires restart of the jetson, and that is why you cannot run 10W power modes with all other power modes.
-When running the script, you should enter "0" to run all power modes except 10W and enter "1" to run 10W power mode only. Before each selection, make sure the current power mode is corresponding to your decision.
+Switching between 10W power mode to any other power mode, requires restart of the jetson, and that is why you cannot run 10W power mode with all other power modes.
+When running the script and input is required, you should enter "0" to run all power modes except 10W and enter "1" to run 10W power mode only. Before each selection, make sure the current power mode is corresponding to your decision.
 You will also be requested to enter your Jetson sudo password. This information is needed to switch between power modes.
 
 The output of this script will be placed in a new folder named "tegrastats_recordings" which will be placed in mmsegmentation folder. The output will include the following files:
