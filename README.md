@@ -17,7 +17,7 @@ Next, one can download the two other files in the repository - test_with_logs.py
 Place the two files in the following route:
 **mmsegmentation->tools**
 
-run_networks.py is our main file and it runs the desired networks in all of Jettson's power modes.
+run_networks.py is our main file and it runs the desired networks in test_with_logs.py with all of Jettson's power modes.
 Before running the file, make sure your working directory is mmsegmentation.
 Inside the file, paste the paths to the configs and checkpoints of the networks you want to run. Make sure they are placed in corresponding places in the lists. You should also check you downloaded the checkpoints and configs from mmsegmentation website in the "Model Zoo Statistics": https://mmsegmentation.readthedocs.io/en/latest/modelzoo_statistics.htmly and placed them in the mmsegmentation->checkpoints and mmsegmentation->configs folders.
 
