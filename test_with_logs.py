@@ -285,15 +285,16 @@ def main():
         power_mode_str = cmd_out.stdout.splitlines()[0].split()[-1]
 
         # corresponding tegrastats filename is combination of the network name and the current power mode
-        tegra_filename = checkpoint['meta']['exp_name'][:-3]+"_"+power_mode_str
+        network_name = checkpoint['meta']['exp_name'][:-3]
+        tegra_filename = network_name + "_" + power_mode_str
 
         # delete previous corresponding tegrastats recording if exist
         cmd = 'rm ' + 'tegrastats_recordings/'+tegra_filename+'.txt'
         subprocess.run(cmd, shell=True)
 
         # start tegrastats recording
-        cmd = 'tegrastats --interval 1000 --logfile tegrastats_recordings/'+tegra_filename+'.txt'
-        p = Popen("exec " + cmd, shell=True)
+        cmd = 'sudo tegrastats --interval 1000 --logfile tegrastats_recordings/'+tegra_filename+'.txt'
+        Popen("exec " + cmd, shell=True)
 
         tic = time.perf_counter()   # start timer for inference
 
@@ -309,23 +310,31 @@ def main():
             format_args=eval_kwargs)
 
         toc = time.perf_counter()   # stop timer for inference
-        p.kill()    # stop tegrastats recording
+        cmd = 'sudo tegrastats --stop'  # stop tegrastats recording
+        subprocess.run(cmd, shell=True)
 
         # create Excel file from tegrastats file
-        cmd = 'cat '+ 'tegrastats_recordings/'+tegra_filename+'.txt'+' | tr -s "/" " " > tegrastats_recordings/tmp.txt'
+        cmd = 'cat ' + 'tegrastats_recordings/'+tegra_filename+'.txt'+' | tr -s "/" " " > tegrastats_recordings/tmp.txt'
         subprocess.run(cmd, shell=True)
-        tmp_file = pd.read_csv('tegrastats_recordings/tmp.txt', sep=' ', header=None, usecols=[1, 3])
-        tmp_file.columns = ['System-Time', 'MEM-Used-Size']
+        cmd = 'cat ' + 'tegrastats_recordings/tmp.txt' + ' | tr -s "mw" " " > tegrastats_recordings/tmp2.txt'
+        subprocess.run(cmd, shell=True)
+        tmp_file = pd.read_csv('tegrastats_recordings/tmp2.txt', sep=' ', header=None, usecols=[1, 3, 32])
+        tmp_file.columns = ['System-Time', 'MEM-Used-Size', 'GPU-Power']
         tmp_file.to_excel('tegrastats_recordings/'+tegra_filename+'.xlsx', index=None)
         cmd = 'rm tegrastats_recordings/tmp.txt'
+        subprocess.run(cmd, shell=True)
+        cmd = 'rm tegrastats_recordings/tmp2.txt'
         subprocess.run(cmd, shell=True)
 
         # plot and save System Time-MEM Used Size graph
         MEM_avg = plotGraphByColumns('System-Time', 'MEM-Used-Size', 'MB', 'tegrastats_recordings/'+tegra_filename+'.xlsx', 'tegrastats_recordings/'+tegra_filename)
 
+        # plot and save System Time-GPU power graph
+        GPU_power_avg = plotGraphByColumns('System-Time', 'GPU-Power', 'mW', 'tegrastats_recordings/' + tegra_filename + '.xlsx', 'tegrastats_recordings/' + tegra_filename)
+
         # write the results to the inferences_data file
         elapsed = f"{toc - tic:0.2f}"
-        cmd = 'printf "'+tegra_filename+' '+elapsed+' '+MEM_avg+'\n"'+' >> '+'tegrastats_recordings/'+'inferences_data.txt'
+        cmd = 'printf "'+network_name+' '+power_mode_str+' '+elapsed+' '+MEM_avg+' '+GPU_power_avg+'\n"'+' >> '+'tegrastats_recordings/'+'inferences_data.txt'
         subprocess.run(cmd, shell=True)
 
     else:

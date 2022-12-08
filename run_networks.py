@@ -11,12 +11,12 @@ def main():
 
     # make tegrastats_recordings directory in mmsegmentation directory to store tegrastats recordings
     cmd = 'mkdir -p tegrastats_recordings'
-    Popen("exec " + cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    subprocess.run(cmd, shell=True)
 
-    # create new file for elapsed inference times
+    # create new file for inferences data
     cmd = 'touch ' + 'tegrastats_recordings/inferences_data.txt'
     subprocess.run(cmd, shell=True)
-    cmd = 'printf "Network Time AVG-MEM-USED-SIZE AVG-GPU-POWER'+ '\n"' +' >> ' + 'tegrastats_recordings/inferences_data.txt'
+    cmd = 'printf "Network Power-Mode Time[sec] AVG-MEM-USED-SIZE[MB] AVG-GPU-POWER[mW]' + '\n"' +' >> ' + 'tegrastats_recordings/inferences_data.txt'
     subprocess.run(cmd, shell=True)
 
     # ask sudo password from user to be able to change power modes
@@ -84,8 +84,8 @@ def main():
             subprocess.run(cmd, shell=True)
 
     # create Excel file of inferences_data.txt results
-    read_file = pd.read_csv('tegrastats_recordings/inferences_data.txt', sep=' ')
-    read_file.to_excel('tegrastats_recordings/inferences_data.xlsx', index=None)
+    tmp_file = pd.read_csv('tegrastats_recordings/inferences_data.txt', sep=' ', header=0)
+    tmp_file.to_excel('tegrastats_recordings/inferences_data.xlsx', index=None)
 
 if __name__ == '__main__':
     main()
