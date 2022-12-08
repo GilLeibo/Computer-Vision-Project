@@ -7,14 +7,15 @@ Our project is based upon the mmsegmentation open-source package for semantic se
 Before using our files, one should install mmsegmentation according to the instructions on the official website and make sure the package is installed successfully according to the "verify the installation" section in the mmsegmentation installation guide.
 
 After installation is completed successfully, one can download from this repository the RandomPicturesGenerator.py file. Running this file will generate white-noise pictures (pixels values ranging from 0 to 255 randomly) with a height of 1080 pixels and width of 1440 pixels (one can change width and height in the code). The number of pictures to generate is according to the input from the user.
-These pictures can be used to check the networks performances without relation to real pictures.
-Copy the generated pictures (the pictures themselves, not the folder) and paste them in the following route (if you don't have the folders in the route, create them manually):
-mmsegmentation->data->cityscapes->leftimg8bit->val->lindau.
-make sure you also have the following route, create if not exist (val should be an empty folder):
-mmsegmentation->data->cityscapes->gtFine->val.
+These pictures can be used to check the networks performances without relation to real pictures.<br>
+Copy the generated pictures (the pictures themselves, not the folder) and paste them in the following route (if you don't have the folders in the route, create them manually):<br>
+**mmsegmentation->data->cityscapes->leftimg8bit->val->lindau** <br>
+make sure you also have the following route, create if not exist (val should be an empty folder):<br>
+**mmsegmentation->data->cityscapes->gtFine->val**
 
 Next, one can download the two other files in the repository - test_with_logs.py, run_networks.py.
-Place the two files in the following route: mmsegmentation->tools.
+Place the two files in the following route: <br> 
+**mmsegmentation->tools**
 
 run_networks.py is our main file and it runs the desired networks in all of Jettson's power modes.
 Before running the file, make sure your working directory is mmsegmentation.
