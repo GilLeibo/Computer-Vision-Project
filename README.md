@@ -25,9 +25,10 @@ When running the script and input is required, you should enter "0" to run all p
 You will also be requested to enter your Jetson sudo password. This information is needed to switch between power modes.
 
 The output of this script will be placed in a new folder named "tegrastats_recordings" which will be placed in mmsegmentation folder. The output will include the following files:
-For each network: 
-	tegrastats recording in txt file
-	Excel file of System time, RAM in use and GPU power consumption
-	Graph of RAM used VS time
-	Graph of GPU power consumption VS time
+
+For each network:<br>
+	> tegrastats recording in txt file<br>
+	Excel file of System time, RAM in use and GPU power consumption<br>
+	Graph of RAM used VS time<br>
+	Graph of GPU power consumption VS time<br>
 Inferences data - txt and Excel file which organizes the AVG RAM consumption and AVG GPU power consumption for each of the networks and each power mode.
