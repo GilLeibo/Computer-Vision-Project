@@ -6,7 +6,7 @@ Our project is based upon the mmsegmentation open-source package for semantic se
 
 Before using our files, one should install mmsegmentation according to the instructions on the official website and make sure the package is installed successfully according to the "verify the installation" section in the mmsegmentation installation guide.
 
-After installation is completed successfully, one can download from this repository the RandomPicturesGenerator.py file. Running this file will generate white-noise pictures (pixels values ranging from 0 to 255 randomly) with a height of 1080 pixels and width of 1440 pixels (one can change width and height in the code). The number of pictures to generate is according to the input from the user.
+After installation is completed successfully, one can download from this repository the RandomPicturesGenerator.py file (To code the file we used this reference: https://www.geeksforgeeks.org/convert-a-numpy-array-to-an-image/). Running this file will generate white-noise pictures (pixels values ranging from 0 to 255 randomly) with a height of 1080 pixels and width of 1440 pixels (one can change width and height in the code). The number of pictures to generate is according to the input from the user.
 These pictures can be used to check the networks performances without relation to real pictures.<br>
 Copy the generated pictures (the pictures themselves, not the folder) and paste them in the following route (if you don't have the folders in the route, create them manually):<br>
 **mmsegmentation->data->cityscapes->leftimg8bit->val->lindau** <br>
