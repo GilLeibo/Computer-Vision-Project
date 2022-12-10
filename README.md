@@ -39,13 +39,15 @@ Inferences data file:<br>
 ## Quantization
 One of the project goals was to implement quantization techniques to improve inferences' times and memory consumption. We used the mmsegmentation's function which enables quantization from 32FP to 16FP. A description of that function can be found on mmsegmentation's official website: https://mmcv.readthedocs.io/en/latest/_modules/mmcv/runner/fp16_utils.html.
 
-To run the desired networks and to analyze the performances one can download these files: run_networks_quantize.py, test_origin.py, test_quantize_mmseg.py. Also, one should download Cityscapes dataset: https://www.cityscapes-dataset.com/.
+To run the desired networks and to analyze the performances, one can download these files: run_networks_quantize.py, test_origin.py, test_quantize_mmseg.py. Also, one should download Cityscapes dataset: https://www.cityscapes-dataset.com/.
 The dataset should be placed in corresponding places at:
 **mmsegmentation->data->cityscapes->val** and 
 **mmsegmentation->data->cityscapes->val**.
 
-Out main script is run_networks_quantize.py which runs the two other scripts. Parameters that should be initizalied are similar to run_networks.py as we explained before.
+Our main script is run_networks_quantize.py which runs the two other scripts. Parameters that should be initizalied are similar to run_networks.py as we explained before.
 
-The output of the script will be placed in **mmsegmentation->quantization_recordings**. Inside the directory will be two other directories: results-which contains the input pictures after segmentation of the network without qunatization. quantization_results-which contains the input pictures after segmentation of the network with qunatization.
+The output of the script will be placed in **mmsegmentation->quantization_recordings**. Inside the directory will be two other directories:<br> 
+- results-which contains the input pictures after segmentation of the network **without** qunatization
+- quantization_results-which contains the input pictures after segmentation of the network **with** qunatization
 
-Also, for each network files will be generated the same as explained in run_networks.py. The overall results will be places in qunnatization_data file that will conatins information the same as explained for run_networks.py with extra columns for quantization techqniue and mIoU result.
+Also, for each network, files will be generated the same as explained in run_networks.py. The overall results will be places in quantization_data Excel file that will conatin information similar as explained for run_networks.py with extra columns for quantization techqniue and mIoU result.
