@@ -35,3 +35,5 @@ For each network:<br>
 
 Inferences data file:<br> 
 - Excel file which organizes the average RAM consumption, average GPU power consumption for each of the networks and each power mode.
+
+## Quantization
