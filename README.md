@@ -41,8 +41,8 @@ One of the project goals was to implement quantization techniques to improve inf
 
 To run the desired networks and to analyze the performances, one can download these files: run_networks_quantize.py, test_origin.py, test_quantize_mmseg.py. Also, one should download Cityscapes dataset: https://www.cityscapes-dataset.com/.
 The dataset should be placed in corresponding places at:
-**mmsegmentation->data->cityscapes->val** and 
-**mmsegmentation->data->cityscapes->val**.
+**mmsegmentation->data->cityscapes->leftimg8bit->val** and 
+**mmsegmentation->data->cityscapes->gtFine->val**.
 
 Our main script is run_networks_quantize.py which runs the two other scripts. Parameters that should be initizalied are similar to run_networks.py as we explained before.
 
