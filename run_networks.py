@@ -25,8 +25,9 @@ def main():
     # ask for which power modes to run the networks
     power_modes_entry = input("Enter 0 to run networks on all power modes except 10W (make sure your current power mode isn't 10W)\n"
                               "Enter 1 to run networks on 10W only (make sure your current power mode is 10W): \n")
+    power_modes = None
 
-    if power_modes_entry=='0':
+    if power_modes_entry == '0':
         """""
             # run networks on all jetson power modes except 10W power mode, since it requires restart of the jetson.
             # legend (power_mode_num=power_mode_description):
@@ -39,7 +40,7 @@ def main():
             """
         power_modes = [0, 2, 3, 4, 5, 6]
 
-    elif power_modes_entry=='1':
+    elif power_modes_entry == '1':
         # run networks on 10W only power mode
         power_modes = [1]
 
