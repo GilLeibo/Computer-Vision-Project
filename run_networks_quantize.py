@@ -16,7 +16,7 @@ def main():
     # create new file for quantization data
     cmd = 'touch ' + 'quantization_recordings/quantization_data.txt'
     subprocess.run(cmd, shell=True)
-    cmd = 'printf "Network Power-Mode Quantization Time[sec] AVG-MEM-USED-SIZE[MB] AVG-GPU-POWER[mW] Model-Size[KB] mIoU' + '\n"' +' >> ' + 'quantization_recordings/quantization_data.txt'
+    cmd = 'printf "Network Power-Mode Quantization Time[sec] MEDIAN-MEM-USED-SIZE[MB] AVG-MEM-USED-SIZE[MB] MEDIAN-GPU-POWER[mW] AVG-GPU-POWER[mW] Model-Size[KB] mIoU' + '\n"' +' >> ' + 'quantization_recordings/quantization_data.txt'
     subprocess.run(cmd, shell=True)
 
     # ask sudo password from user to be able to activate tegrastats
@@ -52,7 +52,7 @@ def main():
 
     # create Excel file of inferences_data.txt results
     tmp_file = pd.read_csv('quantization_recordings/quantization_data.txt', sep=' ', header=0)
-    tmp_file.to_excel('quantization_recordings/quantization_data..xlsx', index=None)
+    tmp_file.to_excel('quantization_recordings/quantization_data.xlsx', index=None)
 
 if __name__ == '__main__':
     main()

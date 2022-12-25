@@ -271,8 +271,10 @@ def main():
     mIoU_result = ""
     network_name = ""
     power_mode_str = ""
+    MEM_median = ""
     MEM_avg = ""
     GPU_power_avg = ""
+    GPU_power_median = ""
 
     if not distributed:
         warnings.warn(
@@ -333,12 +335,12 @@ def main():
         subprocess.run(cmd, shell=True)
 
         # plot and save System Time-MEM Used Size graph
-        MEM_avg = plotGraphByColumns('System-Time', 'MEM-Used-Size', 'MB',
+        MEM_avg, MEM_median = plotGraphByColumns('System-Time', 'MEM-Used-Size', 'MB',
                                      'quantization_recordings/' + tegra_filename + '.xlsx',
                                      'quantization_recordings/' + tegra_filename)
 
         # plot and save System Time-GPU power graph
-        GPU_power_avg = plotGraphByColumns('System-Time', 'GPU-Power', 'mW',
+        GPU_power_avg, GPU_power_median = plotGraphByColumns('System-Time', 'GPU-Power', 'mW',
                                            'quantization_recordings/' + tegra_filename + '.xlsx',
                                            'quantization_recordings/' + tegra_filename)
 
@@ -382,7 +384,7 @@ def main():
 
     # write the results to the quantization_data file
     model_size = size_of_model(model)
-    cmd = 'printf "' + network_name + ' ' + power_mode_str + ' ' + "No" + ' ' + elapsed_inference + ' ' + MEM_avg + ' ' + GPU_power_avg + ' ' + model_size + ' ' + mIoU_result + '\n"' + ' >> ' + 'quantization_recordings/quantization_data.txt'
+    cmd = 'printf "' + network_name + ' ' + power_mode_str + ' ' + "No" + ' ' + elapsed_inference + ' ' + MEM_median + ' ' + MEM_avg + ' ' + GPU_power_median + ' ' + GPU_power_avg + ' ' + model_size + ' ' + mIoU_result + '\n"' + ' >> ' + 'quantization_recordings/quantization_data.txt'
     subprocess.run(cmd, shell=True)
 
 
@@ -405,9 +407,10 @@ def plotGraphByColumns(columnx, columny, columny_units, xlFile, fileName):
     plt.xlabel(columnx + ' [sec]')
 
     avg = statistics.mean(y)
-    plt.title(columny + " VS time. Average is: " + str(round(avg)))
+    median = statistics.median(y)
+    plt.title(columny + " VS time. Average is: " + str(round(avg)) + ", Median is: " + str(round(median)))
     plt.savefig(fileName + "_" + columny)
-    return str(round(avg))
+    return str(round(avg)), str(round(median))
 
 
 if __name__ == '__main__':
