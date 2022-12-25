@@ -1,5 +1,5 @@
 import subprocess
-from subprocess import Popen
+from PIL import Image, ImageChops
 import pandas as pd
 
 
@@ -38,8 +38,8 @@ def main():
 
     for config, checkpoint in zip(configs, checkpoints):
 
-        # run regular model. Store results in quantization_recordings->results
-        cmd = 'python tools/test_origin.py '+config+' '+checkpoint+' '+'--show-dir quantization_recordings/results --eval mIoU'
+        # run regular model. Store results in quantization_recordings->origin_results
+        cmd = 'python tools/test_origin.py '+config+' '+checkpoint+' '+'--show-dir quantization_recordings/origin_results --eval mIoU'
         subprocess.run(cmd, shell=True)
 
         # run mmseg_quantize model. Store results in quantization_recordings->mmseg_quantize_results
@@ -53,6 +53,22 @@ def main():
     # create Excel file of inferences_data.txt results
     tmp_file = pd.read_csv('quantization_recordings/quantization_data.txt', sep=' ', header=0)
     tmp_file.to_excel('quantization_recordings/quantization_data.xlsx', index=None)
+
+    # generate diff pictures of quantize picture result of origin-mmseg and origin-pytorch and save result to quantization_recordings folder
+    # assign images
+    img_origin = Image.open("quantization_recordings/origin_results/lindau/lindau_000000_000019_leftImg8bit.png")
+    img_mmseg_quantize = Image.open(
+        "quantization_recordings/mmseg_quantize_results/lindau/lindau_000000_000019_leftImg8bit.png")
+    img_pytorch_dynamic_quantize = Image.open(
+        "quantization_recordings/pytorch_dynamic_quantize_results/lindau/lindau_000000_000019_leftImg8bit.png")
+
+    # finding differences
+    diff_origin_mmseg = ImageChops.difference(img_origin, img_mmseg_quantize)
+    diff_origin_pytorch = ImageChops.difference(img_origin, img_pytorch_dynamic_quantize)
+
+    # save images in quantization_recordings folder
+    diff_origin_mmseg.save("quantization_recordings/diff_origin_mmseg.png")
+    diff_origin_pytorch.save("quantization_recordings/diff_origin_pytorch.png")
 
 if __name__ == '__main__':
     main()
