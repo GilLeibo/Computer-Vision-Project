@@ -382,7 +382,7 @@ def main():
 
     # write the results to the quantization_data file
     model_size = size_of_model(model)
-    cmd = 'printf "' + network_name + ' ' + power_mode_str + ' ' + "no" + ' ' + elapsed_inference + ' ' + MEM_avg + ' ' + GPU_power_avg + ' ' + model_size + ' ' + mIoU_result + '\n"' + ' >> ' + 'quantization_recordings/quantization_data.txt'
+    cmd = 'printf "' + network_name + ' ' + power_mode_str + ' ' + "No" + ' ' + elapsed_inference + ' ' + MEM_avg + ' ' + GPU_power_avg + ' ' + model_size + ' ' + mIoU_result + '\n"' + ' >> ' + 'quantization_recordings/quantization_data.txt'
     subprocess.run(cmd, shell=True)
 
 

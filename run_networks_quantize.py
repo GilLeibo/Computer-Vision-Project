@@ -42,8 +42,12 @@ def main():
         cmd = 'python tools/test_origin.py '+config+' '+checkpoint+' '+'--show-dir quantization_recordings/results --eval mIoU'
         subprocess.run(cmd, shell=True)
 
-        # run quantize model. Store results in quantization_recordings->quantize_results
-        cmd = 'python tools/test_quantize_mmseg.py ' + config + ' ' + checkpoint + ' ' + '--show-dir quantization_recordings/quantize_results --eval mIoU'
+        # run mmseg_quantize model. Store results in quantization_recordings->mmseg_quantize_results
+        cmd = 'python tools/test_quantize_mmseg.py ' + config + ' ' + checkpoint + ' ' + '--show-dir quantization_recordings/mmseg_quantize_results --eval mIoU'
+        subprocess.run(cmd, shell=True)
+
+        # run pytorch_dynamic_quantize model. Store results in quantization_recordings->pytorch_dynamic_quantize_results
+        cmd = 'python tools/test_quantize_dynamic_pytorch.py ' + config + ' ' + checkpoint + ' ' + '--show-dir quantization_recordings/pytorch_dynamic_quantize_results --eval mIoU'
         subprocess.run(cmd, shell=True)
 
     # create Excel file of inferences_data.txt results

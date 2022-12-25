@@ -44,14 +44,14 @@ def parse_args():
         '--format-only',
         action='store_true',
         help='Format the output results without perform evaluation. It is'
-        'useful when you want to format the result to a specific format and '
-        'submit it to the test server')
+             'useful when you want to format the result to a specific format and '
+             'submit it to the test server')
     parser.add_argument(
         '--eval',
         type=str,
         nargs='+',
         help='evaluation metrics, which depends on the dataset, e.g., "mIoU"'
-        ' for generic datasets, and "cityscapes" for Cityscapes')
+             ' for generic datasets, and "cityscapes" for Cityscapes')
     parser.add_argument('--show', action='store_true', help='show results')
     parser.add_argument(
         '--show-dir', help='directory where painted images will be saved')
@@ -64,32 +64,32 @@ def parse_args():
         type=int,
         default=0,
         help='id of gpu to use '
-        '(only applicable to non-distributed testing)')
+             '(only applicable to non-distributed testing)')
     parser.add_argument(
         '--tmpdir',
         help='tmp directory used for collecting results from multiple '
-        'workers, available when gpu_collect is not specified')
+             'workers, available when gpu_collect is not specified')
     parser.add_argument(
         '--options',
         nargs='+',
         action=DictAction,
         help="--options is deprecated in favor of --cfg_options' and it will "
-        'not be supported in version v0.22.0. Override some settings in the '
-        'used config, the key-value pair in xxx=yyy format will be merged '
-        'into config file. If the value to be overwritten is a list, it '
-        'should be like key="[a,b]" or key=a,b It also allows nested '
-        'list/tuple values, e.g. key="[(a,b),(c,d)]" Note that the quotation '
-        'marks are necessary and that no white space is allowed.')
+             'not be supported in version v0.22.0. Override some settings in the '
+             'used config, the key-value pair in xxx=yyy format will be merged '
+             'into config file. If the value to be overwritten is a list, it '
+             'should be like key="[a,b]" or key=a,b It also allows nested '
+             'list/tuple values, e.g. key="[(a,b),(c,d)]" Note that the quotation '
+             'marks are necessary and that no white space is allowed.')
     parser.add_argument(
         '--cfg-options',
         nargs='+',
         action=DictAction,
         help='override some settings in the used config, the key-value pair '
-        'in xxx=yyy format will be merged into config file. If the value to '
-        'be overwritten is a list, it should be like key="[a,b]" or key=a,b '
-        'It also allows nested list/tuple values, e.g. key="[(a,b),(c,d)]" '
-        'Note that the quotation marks are necessary and that no white space '
-        'is allowed.')
+             'in xxx=yyy format will be merged into config file. If the value to '
+             'be overwritten is a list, it should be like key="[a,b]" or key=a,b '
+             'It also allows nested list/tuple values, e.g. key="[(a,b),(c,d)]" '
+             'Note that the quotation marks are necessary and that no white space '
+             'is allowed.')
     parser.add_argument(
         '--eval-options',
         nargs='+',
@@ -124,9 +124,10 @@ def parse_args():
 
 
 def main():
+    quant_model = None
     args = parse_args()
     assert args.out or args.eval or args.format_only or args.show \
-        or args.show_dir, \
+           or args.show_dir, \
         ('Please specify at least one operation (save/eval/format/show the '
          'results / save the results) with the argument "--out", "--eval"'
          ', "--format-only", "--show" or "--show-dir"')
@@ -224,10 +225,6 @@ def main():
     # build the model and load checkpoint
     cfg.model.train_cfg = None
     model = build_segmentor(cfg.model, test_cfg=cfg.get('test_cfg'))
-
-    # quantize model using mmsegmentation's wrap_fp16_model function
-    wrap_fp16_model(model)
-    
     checkpoint = load_checkpoint(model, args.checkpoint, map_location='cpu')
     if 'CLASSES' in checkpoint.get('meta', {}):
         model.CLASSES = checkpoint['meta']['CLASSES']
@@ -253,7 +250,7 @@ def main():
             'default')
 
     eval_on_format_results = (
-        args.eval is not None and 'cityscapes' in args.eval)
+            args.eval is not None and 'cityscapes' in args.eval)
     if eval_on_format_results:
         assert len(args.eval) == 1, 'eval on format results is not ' \
                                     'applicable for metrics other than ' \
@@ -275,8 +272,8 @@ def main():
     mIoU_result = ""
     network_name = ""
     power_mode_str = ""
-    MEM_avg=""
-    GPU_power_avg=""
+    MEM_avg = ""
+    GPU_power_avg = ""
 
     if not distributed:
         warnings.warn(
@@ -296,7 +293,7 @@ def main():
 
         # corresponding tegrastats filename is combination of the network name, current power mode and quantization type
         network_name = checkpoint['meta']['exp_name'][:-3]
-        tegra_filename = network_name + "_" + power_mode_str + "_mmsegQuantize"
+        tegra_filename = network_name + "_" + power_mode_str + "_dynamicPytorchQuantize"
 
         # delete previous corresponding tegrastats recording if exist
         cmd = 'rm ' + 'quantization_recordings/' + tegra_filename + '.txt'
@@ -306,10 +303,16 @@ def main():
         cmd = 'sudo tegrastats --interval 1000 --logfile quantization_recordings/' + tegra_filename + '.txt'
         Popen("exec " + cmd, shell=True)
 
-        tic = time.perf_counter()   # start timer for inference
+        # create a quantized model instance
+        quant_model = torch.quantization.quantize_dynamic(
+            model,  # the original model
+            {torch.nn.Linear},  # a set of layers to dynamically quantize
+            dtype=torch.qint8)  # the target dtype for quantized weights
+
+        tic = time.perf_counter()  # start timer for inference
 
         results = single_gpu_test(
-            model,
+            quant_model,
             data_loader,
             args.show,
             args.show_dir,
@@ -319,7 +322,7 @@ def main():
             format_only=args.format_only or eval_on_format_results,
             format_args=eval_kwargs)
 
-        toc = time.perf_counter()   # stop timer for inference
+        toc = time.perf_counter()  # stop timer for inference
         cmd = 'sudo tegrastats --stop'  # stop tegrastats recording
         subprocess.run(cmd, shell=True)
 
@@ -377,7 +380,7 @@ def main():
         if args.eval:
             eval_kwargs.update(metric=args.eval)
             metric = dataset.evaluate(results, **eval_kwargs)
-            mIoU_result = str(metric["mIoU"] * 100)    # variable to write to quantization_data file
+            mIoU_result = str(metric["mIoU"] * 100)  # variable to write to quantization_data file
             metric_dict = dict(config=args.config, metric=metric)
             mmcv.dump(metric_dict, json_file, indent=4)
             if tmpdir is not None and eval_on_format_results:
@@ -385,16 +388,18 @@ def main():
                 shutil.rmtree(tmpdir)
 
     # write the results to the quantization_data file
-    model_size = size_of_model(model)
-    cmd = 'printf "' + network_name + ' ' + power_mode_str + ' ' + "Mmsegmentation(FP16)" + ' ' + elapsed_inference + ' ' + MEM_avg + ' ' + GPU_power_avg + ' ' + model_size + ' ' + mIoU_result + '\n"' + ' >> ' + 'quantization_recordings/quantization_data.txt'
+    model_size = size_of_model(quant_model)
+    cmd = 'printf "' + network_name + ' ' + power_mode_str + ' ' + "Pytorch_Post_Training_Dynamic_Quantization(int8)" + ' ' + elapsed_inference + ' ' + MEM_avg + ' ' + GPU_power_avg + ' ' + model_size + ' ' + mIoU_result + '\n"' + ' >> ' + 'quantization_recordings/quantization_data.txt'
     subprocess.run(cmd, shell=True)
+
 
 # Returns size of model in [KB]
 def size_of_model(model):
     torch.save(model.state_dict(), "temp.p")
-    size=os.path.getsize("temp.p")
+    size = os.path.getsize("temp.p")
     os.remove('temp.p')
-    return str(size/1e3)
+    return str(size / 1e3)
+
 
 def plotGraphByColumns(columnx, columny, columny_units, xlFile, fileName):
     var = pd.read_excel(xlFile)
@@ -402,14 +407,15 @@ def plotGraphByColumns(columnx, columny, columny_units, xlFile, fileName):
     y = list(var[columny])
     plt.figure(figsize=(10, 10))
     plt.style.use('seaborn')
-    plt.plot(x,y)
-    plt.ylabel(columny+' ['+columny_units+']')
+    plt.plot(x, y)
+    plt.ylabel(columny + ' [' + columny_units + ']')
     plt.xlabel(columnx + ' [sec]')
 
     avg = statistics.mean(y)
-    plt.title(columny + " VS time. Average is: "+str(round(avg)))
-    plt.savefig(fileName+"_"+columny)
+    plt.title(columny + " VS time. Average is: " + str(round(avg)))
+    plt.savefig(fileName + "_" + columny)
     return str(round(avg))
+
 
 if __name__ == '__main__':
     main()
