@@ -44,14 +44,14 @@ def parse_args():
         '--format-only',
         action='store_true',
         help='Format the output results without perform evaluation. It is'
-        'useful when you want to format the result to a specific format and '
-        'submit it to the test server')
+             'useful when you want to format the result to a specific format and '
+             'submit it to the test server')
     parser.add_argument(
         '--eval',
         type=str,
         nargs='+',
         help='evaluation metrics, which depends on the dataset, e.g., "mIoU"'
-        ' for generic datasets, and "cityscapes" for Cityscapes')
+             ' for generic datasets, and "cityscapes" for Cityscapes')
     parser.add_argument('--show', action='store_true', help='show results')
     parser.add_argument(
         '--show-dir', help='directory where painted images will be saved')
@@ -64,32 +64,32 @@ def parse_args():
         type=int,
         default=0,
         help='id of gpu to use '
-        '(only applicable to non-distributed testing)')
+             '(only applicable to non-distributed testing)')
     parser.add_argument(
         '--tmpdir',
         help='tmp directory used for collecting results from multiple '
-        'workers, available when gpu_collect is not specified')
+             'workers, available when gpu_collect is not specified')
     parser.add_argument(
         '--options',
         nargs='+',
         action=DictAction,
         help="--options is deprecated in favor of --cfg_options' and it will "
-        'not be supported in version v0.22.0. Override some settings in the '
-        'used config, the key-value pair in xxx=yyy format will be merged '
-        'into config file. If the value to be overwritten is a list, it '
-        'should be like key="[a,b]" or key=a,b It also allows nested '
-        'list/tuple values, e.g. key="[(a,b),(c,d)]" Note that the quotation '
-        'marks are necessary and that no white space is allowed.')
+             'not be supported in version v0.22.0. Override some settings in the '
+             'used config, the key-value pair in xxx=yyy format will be merged '
+             'into config file. If the value to be overwritten is a list, it '
+             'should be like key="[a,b]" or key=a,b It also allows nested '
+             'list/tuple values, e.g. key="[(a,b),(c,d)]" Note that the quotation '
+             'marks are necessary and that no white space is allowed.')
     parser.add_argument(
         '--cfg-options',
         nargs='+',
         action=DictAction,
         help='override some settings in the used config, the key-value pair '
-        'in xxx=yyy format will be merged into config file. If the value to '
-        'be overwritten is a list, it should be like key="[a,b]" or key=a,b '
-        'It also allows nested list/tuple values, e.g. key="[(a,b),(c,d)]" '
-        'Note that the quotation marks are necessary and that no white space '
-        'is allowed.')
+             'in xxx=yyy format will be merged into config file. If the value to '
+             'be overwritten is a list, it should be like key="[a,b]" or key=a,b '
+             'It also allows nested list/tuple values, e.g. key="[(a,b),(c,d)]" '
+             'Note that the quotation marks are necessary and that no white space '
+             'is allowed.')
     parser.add_argument(
         '--eval-options',
         nargs='+',
@@ -126,7 +126,7 @@ def parse_args():
 def main():
     args = parse_args()
     assert args.out or args.eval or args.format_only or args.show \
-        or args.show_dir, \
+           or args.show_dir, \
         ('Please specify at least one operation (save/eval/format/show the '
          'results / save the results) with the argument "--out", "--eval"'
          ', "--format-only", "--show" or "--show-dir"')
@@ -224,9 +224,6 @@ def main():
     # build the model and load checkpoint
     cfg.model.train_cfg = None
     model = build_segmentor(cfg.model, test_cfg=cfg.get('test_cfg'))
-    fp16_cfg = cfg.get('fp16', None)
-    if fp16_cfg is not None:
-        wrap_fp16_model(model)
     checkpoint = load_checkpoint(model, args.checkpoint, map_location='cpu')
     if 'CLASSES' in checkpoint.get('meta', {}):
         model.CLASSES = checkpoint['meta']['CLASSES']
@@ -252,7 +249,7 @@ def main():
             'default')
 
     eval_on_format_results = (
-        args.eval is not None and 'cityscapes' in args.eval)
+            args.eval is not None and 'cityscapes' in args.eval)
     if eval_on_format_results:
         assert len(args.eval) == 1, 'eval on format results is not ' \
                                     'applicable for metrics other than ' \
@@ -268,6 +265,16 @@ def main():
         tmpdir = None
 
     cfg.device = get_device()
+
+    # strings declerations
+    elapsed_inference = ""
+    network_name = ""
+    power_mode_str = ""
+    MEM_median = ""
+    MEM_avg = ""
+    GPU_power_avg = ""
+    GPU_power_median = ""
+
     if not distributed:
         warnings.warn(
             'SyncBN is only supported with DDP. To be compatible with DP, '
@@ -285,18 +292,14 @@ def main():
         power_mode_str = cmd_out.stdout.splitlines()[0].split()[-1]
 
         # corresponding tegrastats filename is combination of the network name and the current power mode
-        network_name = checkpoint['meta']['exp_name'][:-3]
+        network_name = cfg.filename.split('/')[2][:-3]
         tegra_filename = network_name + "_" + power_mode_str
 
-        # delete previous corresponding tegrastats recording if exist
-        cmd = 'rm ' + 'tegrastats_recordings/'+tegra_filename+'.txt'
-        subprocess.run(cmd, shell=True)
-
         # start tegrastats recording
-        cmd = 'sudo tegrastats --interval 1000 --logfile tegrastats_recordings/'+tegra_filename+'.txt'
+        cmd = 'sudo tegrastats --interval 1000 --logfile tegrastats_recordings/' + tegra_filename + '.txt'
         Popen("exec " + cmd, shell=True)
 
-        tic = time.perf_counter()   # start timer for inference
+        tic = time.perf_counter()  # start timer for inference
 
         results = single_gpu_test(
             model,
@@ -309,33 +312,45 @@ def main():
             format_only=args.format_only or eval_on_format_results,
             format_args=eval_kwargs)
 
-        toc = time.perf_counter()   # stop timer for inference
+        toc = time.perf_counter()  # stop timer for inference
         cmd = 'sudo tegrastats --stop'  # stop tegrastats recording
         subprocess.run(cmd, shell=True)
 
-        # create Excel file from tegrastats file
-        cmd = 'cat ' + 'tegrastats_recordings/'+tegra_filename+'.txt'+' | tr -s "/" " " > tegrastats_recordings/tmp.txt'
+        # manipulate tegrastats file
+        cmd = 'cat ' + 'tegrastats_recordings/' + tegra_filename + '.txt' + ' | tr -s "/" " " > tegrastats_recordings/tmp.txt'
         subprocess.run(cmd, shell=True)
         cmd = 'cat ' + 'tegrastats_recordings/tmp.txt' + ' | tr -s "mw" " " > tegrastats_recordings/tmp2.txt'
         subprocess.run(cmd, shell=True)
-        tmp_file = pd.read_csv('tegrastats_recordings/tmp2.txt', sep=' ', header=None, usecols=[1, 3, 32])
-        tmp_file.columns = ['System-Time', 'MEM-Used-Size', 'GPU-Power']
-        tmp_file.to_excel('tegrastats_recordings/'+tegra_filename+'.xlsx', index=None)
+
+        # write tegrastats MEM results to the current power_mode MEM csv file
+        power_mode_MEM_data = pd.read_csv('tegrastats_recordings/' + power_mode_str + '_MEM.csv', header=0)
+        tegrastats_MEM_data = pd.read_csv('tegrastats_recordings/tmp2.txt', sep=' ', usecols=[3], names=[network_name])
+        MEM_result = pd.concat([power_mode_MEM_data, tegrastats_MEM_data], axis=1)
+        MEM_result.to_csv('tegrastats_recordings/' + power_mode_str + '_MEM.csv', index=False)
+
+        # write tegrastats Power results to the current power_mode Power csv file
+        power_mode_Power_data = pd.read_csv('tegrastats_recordings/' + power_mode_str + '_Power.csv', header=0)
+        tegrastats_Power_data = pd.read_csv('tegrastats_recordings/tmp2.txt', sep=' ', usecols=[32], names=[network_name])
+        Power_result = pd.concat([power_mode_Power_data, tegrastats_Power_data], axis=1)
+        Power_result.to_csv('tegrastats_recordings/' + power_mode_str + '_Power.csv', index=False)
+
+        # remove temp  and tegrastats files
         cmd = 'rm tegrastats_recordings/tmp.txt'
         subprocess.run(cmd, shell=True)
         cmd = 'rm tegrastats_recordings/tmp2.txt'
         subprocess.run(cmd, shell=True)
-
-        # plot and save System Time-MEM Used Size graph
-        MEM_avg = plotGraphByColumns('System-Time', 'MEM-Used-Size', 'MB', 'tegrastats_recordings/'+tegra_filename+'.xlsx', 'tegrastats_recordings/'+tegra_filename)
-
-        # plot and save System Time-GPU power graph
-        GPU_power_avg = plotGraphByColumns('System-Time', 'GPU-Power', 'mW', 'tegrastats_recordings/' + tegra_filename + '.xlsx', 'tegrastats_recordings/' + tegra_filename)
-
-        # write the results to the inferences_data file
-        elapsed = f"{toc - tic:0.2f}"
-        cmd = 'printf "'+network_name+' '+power_mode_str+' '+elapsed+' '+MEM_avg+' '+GPU_power_avg+'\n"'+' >> '+'tegrastats_recordings/'+'inferences_data.txt'
+        cmd = 'rm tegrastats_recordings/' + tegra_filename + '.txt'
         subprocess.run(cmd, shell=True)
+
+        # calc MEM avg and median
+        MEM_avg = str(round(tegrastats_MEM_data.mean()[0]))
+        MEM_median = str(round(tegrastats_MEM_data.median()[0]))
+
+        # calc Power avg and median
+        GPU_power_avg = str(round(tegrastats_Power_data.mean()[0]))
+        GPU_power_median = str(round(tegrastats_Power_data.median()[0]))
+
+        elapsed_inference = f"{toc - tic:0.2f}"
 
     else:
         model = build_ddp(
@@ -372,21 +387,10 @@ def main():
                 # remove tmp dir when cityscapes evaluation
                 shutil.rmtree(tmpdir)
 
+    # write the results to the inferences_data file
+    cmd = 'printf "' + network_name + ' ' + power_mode_str + ' ' + elapsed_inference + ' ' + MEM_median + ' ' + MEM_avg + ' ' + GPU_power_median + ' ' + GPU_power_avg + '\n"' + ' >> ' + 'tegrastats_recordings/inferences_data.txt'
+    subprocess.run(cmd, shell=True)
 
-def plotGraphByColumns(columnx, columny, columny_units, xlFile, fileName):
-    var = pd.read_excel(xlFile)
-    x = list(np.arange(len(var[columnx])))
-    y = list(var[columny])
-    plt.figure(figsize=(10, 10))
-    plt.style.use('seaborn')
-    plt.plot(x,y)
-    plt.ylabel(columny+' ['+columny_units+']')
-    plt.xlabel(columnx + ' [sec]')
-
-    avg = statistics.mean(y)
-    plt.title(columny + " VS time. Average is: "+str(round(avg)))
-    plt.savefig(fileName+"_"+columny)
-    return str(round(avg))
 
 if __name__ == '__main__':
     main()

@@ -80,7 +80,7 @@ def main():
         subprocess.run(cmd, shell=True)
 
 
-    # create Excel file from inferences_data.txt results and delete inferences_data.txt
+    # create Excel file from quantization_data.txt results and delete quantization_data.txt
     tmp_file = pd.read_csv('quantization_recordings/quantization_data.txt', sep=' ', header=0)
     tmp_file.to_excel('quantization_recordings/quantization_data.xlsx', index=None)
     cmd = 'rm quantization_recordings/quantization_data.txt'
@@ -117,11 +117,11 @@ def plotAndSaveGraph(df, value, network_name, units):
 
     plt.xlabel("Time")
     plt.ylabel(value + units)
-    plt.title(network_name + '_' + value + units)
+    plt.title(network_name + '-' + value + units)
     plt.legend()
 
     # save figure
-    plt.savefig('quantization_recordings/' + network_name + '_' + value + '.png')
+    plt.savefig('quantization_recordings/' + network_name + '-' + value + '.png')
 
 if __name__ == '__main__':
     main()
