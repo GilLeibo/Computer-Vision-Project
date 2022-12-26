@@ -53,5 +53,5 @@ The output of the script will be placed in **mmsegmentation->quantization_record
 - The overall results will be placed in a quantization_data Excel file that will contain information similar to that explained for run_networks.py with extra columns for the quantization technique and mIoU result.
 
 ## Notes
-If you stopped the scripts during runtime, you should run in the terminal the following command: "sudo tegrastats --stop".<br>
+If you stopped the scripts during runtime, you should run in the terminal the following command: **sudo tegrastats --stop**.<br>
 The reason is that there are subprocesses spawned from the script that still run the tegrastats command and write the outputs to temp files. They will stop the execution only if you will do that explicitly with the command we mentioned before.
