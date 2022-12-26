@@ -99,8 +99,8 @@ def main():
     diff_origin_pytorch = ImageChops.difference(img_origin, img_pytorch_dynamic_quantize)
 
     # save images in quantization_recordings folder
-    diff_origin_mmseg.save("quantization_recordings/diff_origin_mmseg.png")
-    diff_origin_pytorch.save("quantization_recordings/diff_origin_pytorch.png")
+    diff_origin_mmseg.save("quantization_recordings/diff_NoQuantization-MmsegQuantization.png")
+    diff_origin_pytorch.save("quantization_recordings/diff_NoQuantization-PytorchDynamicQuantization.png")
 
 
 def plotAndSaveGraph(df, value, network_name, units):
