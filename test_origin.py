@@ -293,12 +293,8 @@ def main():
         power_mode_str = cmd_out.stdout.splitlines()[0].split()[-1]
 
         # corresponding tegrastats filename is combination of the network name and the current power mode
-        network_name = checkpoint['meta']['exp_name'][:-3]
+        network_name = cfg.filename.split('/')[2][:-3]
         tegra_filename = network_name + "_" + power_mode_str
-
-        # delete previous corresponding tegrastats recording if exist
-        cmd = 'rm ' + 'quantization_recordings/' + tegra_filename + '.txt'
-        subprocess.run(cmd, shell=True)
 
         # start tegrastats recording
         cmd = 'sudo tegrastats --interval 1000 --logfile quantization_recordings/' + tegra_filename + '.txt'
@@ -321,28 +317,39 @@ def main():
         cmd = 'sudo tegrastats --stop'  # stop tegrastats recording
         subprocess.run(cmd, shell=True)
 
-        # create Excel file from tegrastats file
+        # manipulate tegrastats file
         cmd = 'cat ' + 'quantization_recordings/' + tegra_filename + '.txt' + ' | tr -s "/" " " > quantization_recordings/tmp.txt'
         subprocess.run(cmd, shell=True)
         cmd = 'cat ' + 'quantization_recordings/tmp.txt' + ' | tr -s "mw" " " > quantization_recordings/tmp2.txt'
         subprocess.run(cmd, shell=True)
-        tmp_file = pd.read_csv('quantization_recordings/tmp2.txt', sep=' ', header=None, usecols=[1, 3, 32])
-        tmp_file.columns = ['System-Time', 'MEM-Used-Size', 'GPU-Power']
-        tmp_file.to_excel('quantization_recordings/' + tegra_filename + '.xlsx', index=None)
+
+        # write tegrastats MEM results to the network MEM csv file
+        network_MEM_data = pd.read_csv('quantization_recordings/' + network_name + '_MEM.csv', header=0)
+        tegrastats_MEM_data = pd.read_csv('quantization_recordings/tmp2.txt', sep=' ', usecols=[3], names=["No_Quantization"])
+        MEM_result = pd.concat([network_MEM_data, tegrastats_MEM_data], axis=1)
+        MEM_result.to_csv('quantization_recordings/' + network_name + '_MEM.csv', index=False)
+
+        # write tegrastats Power results to the network Power csv file
+        network_Power_data = pd.read_csv('quantization_recordings/' + network_name + '_Power.csv', header=0)
+        tegrastats_Power_data = pd.read_csv('quantization_recordings/tmp2.txt', sep=' ', usecols=[32], names=["No_Quantization"])
+        Power_result = pd.concat([network_Power_data, tegrastats_Power_data], axis=1)
+        Power_result.to_csv('quantization_recordings/' + network_name + '_Power.csv', index=False)
+
+        # remove temp  and tegrastats files
         cmd = 'rm quantization_recordings/tmp.txt'
         subprocess.run(cmd, shell=True)
         cmd = 'rm quantization_recordings/tmp2.txt'
         subprocess.run(cmd, shell=True)
+        cmd = 'rm quantization_recordings/' + tegra_filename + '.txt'
+        subprocess.run(cmd, shell=True)
 
-        # plot and save System Time-MEM Used Size graph
-        MEM_avg, MEM_median = plotGraphByColumns('System-Time', 'MEM-Used-Size', 'MB',
-                                     'quantization_recordings/' + tegra_filename + '.xlsx',
-                                     'quantization_recordings/' + tegra_filename)
+        # calc MEM avg and median
+        MEM_avg = str(round(tegrastats_MEM_data.mean()[0]))
+        MEM_median = str(round(tegrastats_MEM_data.median()[0]))
 
-        # plot and save System Time-GPU power graph
-        GPU_power_avg, GPU_power_median = plotGraphByColumns('System-Time', 'GPU-Power', 'mW',
-                                           'quantization_recordings/' + tegra_filename + '.xlsx',
-                                           'quantization_recordings/' + tegra_filename)
+        # calc Power avg and median
+        GPU_power_avg = str(round(tegrastats_Power_data.mean()[0]))
+        GPU_power_median = str(round(tegrastats_Power_data.median()[0]))
 
         elapsed_inference = f"{toc - tic:0.2f}"
 
@@ -384,7 +391,7 @@ def main():
 
     # write the results to the quantization_data file
     model_size = size_of_model(model)
-    cmd = 'printf "' + network_name + ' ' + power_mode_str + ' ' + "No" + ' ' + elapsed_inference + ' ' + MEM_median + ' ' + MEM_avg + ' ' + GPU_power_median + ' ' + GPU_power_avg + ' ' + model_size + ' ' + mIoU_result + '\n"' + ' >> ' + 'quantization_recordings/quantization_data.txt'
+    cmd = 'printf "' + network_name + ' ' + power_mode_str + ' ' + "No_Quantization" + ' ' + elapsed_inference + ' ' + MEM_median + ' ' + MEM_avg + ' ' + GPU_power_median + ' ' + GPU_power_avg + ' ' + model_size + ' ' + mIoU_result + '\n"' + ' >> ' + 'quantization_recordings/quantization_data.txt'
     subprocess.run(cmd, shell=True)
 
 
@@ -394,23 +401,6 @@ def size_of_model(model):
     size = os.path.getsize("temp.p")
     os.remove('temp.p')
     return str(size / 1e3)
-
-
-def plotGraphByColumns(columnx, columny, columny_units, xlFile, fileName):
-    var = pd.read_excel(xlFile)
-    x = list(np.arange(len(var[columnx])))
-    y = list(var[columny])
-    plt.figure(figsize=(10, 10))
-    plt.style.use('seaborn')
-    plt.plot(x, y)
-    plt.ylabel(columny + ' [' + columny_units + ']')
-    plt.xlabel(columnx + ' [sec]')
-
-    avg = statistics.mean(y)
-    median = statistics.median(y)
-    plt.title(columny + " VS time. Average is: " + str(round(avg)) + ", Median is: " + str(round(median)))
-    plt.savefig(fileName + "_" + columny)
-    return str(round(avg)), str(round(median))
 
 
 if __name__ == '__main__':

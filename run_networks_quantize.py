@@ -1,6 +1,8 @@
 import subprocess
 from PIL import Image, ImageChops
 import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
 
 
 def main():
@@ -14,7 +16,7 @@ def main():
     subprocess.run(cmd, shell=True)
 
     # create new file for quantization data
-    cmd = 'touch ' + 'quantization_recordings/quantization_data.txt'
+    cmd = 'touch quantization_recordings/quantization_data.txt'
     subprocess.run(cmd, shell=True)
     cmd = 'printf "Network Power-Mode Quantization Time[sec] MEDIAN-MEM-USED-SIZE[MB] AVG-MEM-USED-SIZE[MB] MEDIAN-GPU-POWER[mW] AVG-GPU-POWER[mW] Model-Size[KB] mIoU' + '\n"' +' >> ' + 'quantization_recordings/quantization_data.txt'
     subprocess.run(cmd, shell=True)
@@ -38,6 +40,17 @@ def main():
 
     for config, checkpoint in zip(configs, checkpoints):
 
+        # create csv files for the network MEM and Power
+        network_name = config.split('/')[2][:-3]
+        cmd = 'touch quantization_recordings/' + network_name + '_MEM.csv'
+        subprocess.run(cmd, shell=True)
+        cmd = 'printf "Empty\n" >> ' + 'quantization_recordings/' + network_name + '_MEM.csv'
+        subprocess.run(cmd, shell=True)
+        cmd = 'touch quantization_recordings/' + network_name + '_Power.csv'
+        subprocess.run(cmd, shell=True)
+        cmd = 'printf "Empty\n" >> ' + 'quantization_recordings/' + network_name + '_Power.csv'
+        subprocess.run(cmd, shell=True)
+
         # run regular model. Store results in quantization_recordings->origin_results
         cmd = 'python tools/test_origin.py '+config+' '+checkpoint+' '+'--show-dir quantization_recordings/origin_results --eval mIoU'
         subprocess.run(cmd, shell=True)
@@ -50,9 +63,28 @@ def main():
         cmd = 'python tools/test_quantize_dynamic_pytorch.py ' + config + ' ' + checkpoint + ' ' + '--show-dir quantization_recordings/pytorch_dynamic_quantize_results --eval mIoU'
         subprocess.run(cmd, shell=True)
 
-    # create Excel file of inferences_data.txt results
+        # remove first empty column of csv files for the network MEM and Power
+        network_MEM_data = pd.read_csv('quantization_recordings/' + network_name + '_MEM.csv', header=0)
+        network_MEM_data.drop(columns=network_MEM_data.columns[0], axis=1, inplace=True)
+        network_Power_data = pd.read_csv('quantization_recordings/' + network_name + '_Power.csv', header=0)
+        network_Power_data.drop(columns=network_Power_data.columns[0], axis=1, inplace=True)
+
+        # Plot and save graphs for network MEM and Power
+        plotAndSaveGraph(network_MEM_data, "MEM", network_name, "[MB]")
+        plotAndSaveGraph(network_Power_data, "Power", network_name, "[mW]")
+
+        # delete csv files of MEM and Power of the network
+        cmd = 'rm quantization_recordings/' + network_name + '_MEM.csv'
+        subprocess.run(cmd, shell=True)
+        cmd = 'rm quantization_recordings/' + network_name + '_Power.csv'
+        subprocess.run(cmd, shell=True)
+
+
+    # create Excel file from inferences_data.txt results and delete inferences_data.txt
     tmp_file = pd.read_csv('quantization_recordings/quantization_data.txt', sep=' ', header=0)
     tmp_file.to_excel('quantization_recordings/quantization_data.xlsx', index=None)
+    cmd = 'rm quantization_recordings/quantization_data.txt'
+    subprocess.run(cmd, shell=True)
 
     # generate diff pictures of quantize picture result of origin-mmseg and origin-pytorch and save result to quantization_recordings folder
     # assign images
@@ -69,6 +101,27 @@ def main():
     # save images in quantization_recordings folder
     diff_origin_mmseg.save("quantization_recordings/diff_origin_mmseg.png")
     diff_origin_pytorch.save("quantization_recordings/diff_origin_pytorch.png")
+
+
+def plotAndSaveGraph(df, value, network_name, units):
+
+    # clear figure state (so plots won't override)
+    plt.clf()
+
+    for index, colname in enumerate(df):
+        x = np.arange(0, len(df.loc[:, colname]))
+        y = df.loc[:, colname]
+
+        # Plotting both the curves simultaneously
+        plt.plot(x, y, label=colname)
+
+    plt.xlabel("time")
+    plt.ylabel(value + units)
+    plt.title(network_name + '_' + value + units)
+    plt.legend()
+
+    # save figure
+    plt.savefig('quantization_recordings/' + network_name + '_' + value + '.png')
 
 if __name__ == '__main__':
     main()

@@ -44,14 +44,14 @@ def parse_args():
         '--format-only',
         action='store_true',
         help='Format the output results without perform evaluation. It is'
-        'useful when you want to format the result to a specific format and '
-        'submit it to the test server')
+             'useful when you want to format the result to a specific format and '
+             'submit it to the test server')
     parser.add_argument(
         '--eval',
         type=str,
         nargs='+',
         help='evaluation metrics, which depends on the dataset, e.g., "mIoU"'
-        ' for generic datasets, and "cityscapes" for Cityscapes')
+             ' for generic datasets, and "cityscapes" for Cityscapes')
     parser.add_argument('--show', action='store_true', help='show results')
     parser.add_argument(
         '--show-dir', help='directory where painted images will be saved')
@@ -64,32 +64,32 @@ def parse_args():
         type=int,
         default=0,
         help='id of gpu to use '
-        '(only applicable to non-distributed testing)')
+             '(only applicable to non-distributed testing)')
     parser.add_argument(
         '--tmpdir',
         help='tmp directory used for collecting results from multiple '
-        'workers, available when gpu_collect is not specified')
+             'workers, available when gpu_collect is not specified')
     parser.add_argument(
         '--options',
         nargs='+',
         action=DictAction,
         help="--options is deprecated in favor of --cfg_options' and it will "
-        'not be supported in version v0.22.0. Override some settings in the '
-        'used config, the key-value pair in xxx=yyy format will be merged '
-        'into config file. If the value to be overwritten is a list, it '
-        'should be like key="[a,b]" or key=a,b It also allows nested '
-        'list/tuple values, e.g. key="[(a,b),(c,d)]" Note that the quotation '
-        'marks are necessary and that no white space is allowed.')
+             'not be supported in version v0.22.0. Override some settings in the '
+             'used config, the key-value pair in xxx=yyy format will be merged '
+             'into config file. If the value to be overwritten is a list, it '
+             'should be like key="[a,b]" or key=a,b It also allows nested '
+             'list/tuple values, e.g. key="[(a,b),(c,d)]" Note that the quotation '
+             'marks are necessary and that no white space is allowed.')
     parser.add_argument(
         '--cfg-options',
         nargs='+',
         action=DictAction,
         help='override some settings in the used config, the key-value pair '
-        'in xxx=yyy format will be merged into config file. If the value to '
-        'be overwritten is a list, it should be like key="[a,b]" or key=a,b '
-        'It also allows nested list/tuple values, e.g. key="[(a,b),(c,d)]" '
-        'Note that the quotation marks are necessary and that no white space '
-        'is allowed.')
+             'in xxx=yyy format will be merged into config file. If the value to '
+             'be overwritten is a list, it should be like key="[a,b]" or key=a,b '
+             'It also allows nested list/tuple values, e.g. key="[(a,b),(c,d)]" '
+             'Note that the quotation marks are necessary and that no white space '
+             'is allowed.')
     parser.add_argument(
         '--eval-options',
         nargs='+',
@@ -126,7 +126,7 @@ def parse_args():
 def main():
     args = parse_args()
     assert args.out or args.eval or args.format_only or args.show \
-        or args.show_dir, \
+           or args.show_dir, \
         ('Please specify at least one operation (save/eval/format/show the '
          'results / save the results) with the argument "--out", "--eval"'
          ', "--format-only", "--show" or "--show-dir"')
@@ -227,7 +227,7 @@ def main():
 
     # quantize model using mmsegmentation's wrap_fp16_model function
     wrap_fp16_model(model)
-    
+
     checkpoint = load_checkpoint(model, args.checkpoint, map_location='cpu')
     if 'CLASSES' in checkpoint.get('meta', {}):
         model.CLASSES = checkpoint['meta']['CLASSES']
@@ -253,7 +253,7 @@ def main():
             'default')
 
     eval_on_format_results = (
-        args.eval is not None and 'cityscapes' in args.eval)
+            args.eval is not None and 'cityscapes' in args.eval)
     if eval_on_format_results:
         assert len(args.eval) == 1, 'eval on format results is not ' \
                                     'applicable for metrics other than ' \
@@ -297,18 +297,14 @@ def main():
         power_mode_str = cmd_out.stdout.splitlines()[0].split()[-1]
 
         # corresponding tegrastats filename is combination of the network name, current power mode and quantization type
-        network_name = checkpoint['meta']['exp_name'][:-3]
+        network_name = cfg.filename.split('/')[2][:-3]
         tegra_filename = network_name + "_" + power_mode_str + "_mmsegQuantize"
-
-        # delete previous corresponding tegrastats recording if exist
-        cmd = 'rm ' + 'quantization_recordings/' + tegra_filename + '.txt'
-        subprocess.run(cmd, shell=True)
 
         # start tegrastats recording
         cmd = 'sudo tegrastats --interval 1000 --logfile quantization_recordings/' + tegra_filename + '.txt'
         Popen("exec " + cmd, shell=True)
 
-        tic = time.perf_counter()   # start timer for inference
+        tic = time.perf_counter()  # start timer for inference
 
         results = single_gpu_test(
             model,
@@ -321,32 +317,43 @@ def main():
             format_only=args.format_only or eval_on_format_results,
             format_args=eval_kwargs)
 
-        toc = time.perf_counter()   # stop timer for inference
+        toc = time.perf_counter()  # stop timer for inference
         cmd = 'sudo tegrastats --stop'  # stop tegrastats recording
         subprocess.run(cmd, shell=True)
 
-        # create Excel file from tegrastats file
+        # manipulate tegrastats file
         cmd = 'cat ' + 'quantization_recordings/' + tegra_filename + '.txt' + ' | tr -s "/" " " > quantization_recordings/tmp.txt'
         subprocess.run(cmd, shell=True)
         cmd = 'cat ' + 'quantization_recordings/tmp.txt' + ' | tr -s "mw" " " > quantization_recordings/tmp2.txt'
         subprocess.run(cmd, shell=True)
-        tmp_file = pd.read_csv('quantization_recordings/tmp2.txt', sep=' ', header=None, usecols=[1, 3, 32])
-        tmp_file.columns = ['System-Time', 'MEM-Used-Size', 'GPU-Power']
-        tmp_file.to_excel('quantization_recordings/' + tegra_filename + '.xlsx', index=None)
+
+        # write tegrastats MEM results to the network MEM csv file
+        network_MEM_data = pd.read_csv('quantization_recordings/' + network_name + '_MEM.csv', header=0)
+        tegrastats_MEM_data = pd.read_csv('quantization_recordings/tmp2.txt', sep=' ', usecols=[3], names=["Mmsegmentation_Quantization(FP16)"])
+        MEM_result = pd.concat([network_MEM_data, tegrastats_MEM_data], axis=1)
+        MEM_result.to_csv('quantization_recordings/' + network_name + '_MEM.csv', index=False)
+
+        # write tegrastats Power results to the network Power csv file
+        network_Power_data = pd.read_csv('quantization_recordings/' + network_name + '_Power.csv', header=0)
+        tegrastats_Power_data = pd.read_csv('quantization_recordings/tmp2.txt', sep=' ', usecols=[32], names=["Mmsegmentation_Quantization(FP16)"])
+        Power_result = pd.concat([network_Power_data, tegrastats_Power_data], axis=1)
+        Power_result.to_csv('quantization_recordings/' + network_name + '_Power.csv', index=False)
+
+        # remove temp  and tegrastats files
         cmd = 'rm quantization_recordings/tmp.txt'
         subprocess.run(cmd, shell=True)
         cmd = 'rm quantization_recordings/tmp2.txt'
         subprocess.run(cmd, shell=True)
+        cmd = 'rm quantization_recordings/' + tegra_filename + '.txt'
+        subprocess.run(cmd, shell=True)
 
-        # plot and save System Time-MEM Used Size graph
-        MEM_avg, MEM_median = plotGraphByColumns('System-Time', 'MEM-Used-Size', 'MB',
-                                     'quantization_recordings/' + tegra_filename + '.xlsx',
-                                     'quantization_recordings/' + tegra_filename)
+        # calc MEM avg and median
+        MEM_avg = str(round(tegrastats_MEM_data.mean()[0]))
+        MEM_median = str(round(tegrastats_MEM_data.median()[0]))
 
-        # plot and save System Time-GPU power graph
-        GPU_power_avg, GPU_power_median = plotGraphByColumns('System-Time', 'GPU-Power', 'mW',
-                                           'quantization_recordings/' + tegra_filename + '.xlsx',
-                                           'quantization_recordings/' + tegra_filename)
+        # calc Power avg and median
+        GPU_power_avg = str(round(tegrastats_Power_data.mean()[0]))
+        GPU_power_median = str(round(tegrastats_Power_data.median()[0]))
 
         elapsed_inference = f"{toc - tic:0.2f}"
 
@@ -379,7 +386,7 @@ def main():
         if args.eval:
             eval_kwargs.update(metric=args.eval)
             metric = dataset.evaluate(results, **eval_kwargs)
-            mIoU_result = str(metric["mIoU"] * 100)    # variable to write to quantization_data file
+            mIoU_result = str(metric["mIoU"] * 100)  # variable to write to quantization_data file
             metric_dict = dict(config=args.config, metric=metric)
             mmcv.dump(metric_dict, json_file, indent=4)
             if tmpdir is not None and eval_on_format_results:
@@ -388,31 +395,17 @@ def main():
 
     # write the results to the quantization_data file
     model_size = size_of_model(model)
-    cmd = 'printf "' + network_name + ' ' + power_mode_str + ' ' + "Mmsegmentation(FP16)" + ' ' + elapsed_inference + ' ' + MEM_median + ' ' + MEM_avg + ' ' + GPU_power_median + ' ' + GPU_power_avg + ' ' + model_size + ' ' + mIoU_result + '\n"' + ' >> ' + 'quantization_recordings/quantization_data.txt'
+    cmd = 'printf "' + network_name + ' ' + power_mode_str + ' ' + "Mmsegmentation_Quantization(FP16)" + ' ' + elapsed_inference + ' ' + MEM_median + ' ' + MEM_avg + ' ' + GPU_power_median + ' ' + GPU_power_avg + ' ' + model_size + ' ' + mIoU_result + '\n"' + ' >> ' + 'quantization_recordings/quantization_data.txt'
     subprocess.run(cmd, shell=True)
+
 
 # Returns size of model in [KB]
 def size_of_model(model):
     torch.save(model.state_dict(), "temp.p")
-    size=os.path.getsize("temp.p")
+    size = os.path.getsize("temp.p")
     os.remove('temp.p')
-    return str(size/1e3)
+    return str(size / 1e3)
 
-def plotGraphByColumns(columnx, columny, columny_units, xlFile, fileName):
-    var = pd.read_excel(xlFile)
-    x = list(np.arange(len(var[columnx])))
-    y = list(var[columny])
-    plt.figure(figsize=(10, 10))
-    plt.style.use('seaborn')
-    plt.plot(x,y)
-    plt.ylabel(columny+' ['+columny_units+']')
-    plt.xlabel(columnx + ' [sec]')
-
-    avg = statistics.mean(y)
-    median = statistics.median(y)
-    plt.title(columny + " VS time. Average is: " + str(round(avg)) + ", Median is: " + str(round(median)))
-    plt.savefig(fileName+"_"+columny)
-    return str(round(avg)), str(round(median))
 
 if __name__ == '__main__':
     main()
