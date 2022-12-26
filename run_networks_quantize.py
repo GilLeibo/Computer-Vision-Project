@@ -118,10 +118,10 @@ def plotAndSaveGraph(df, value, network_name, units):
     plt.xlabel("Time")
     plt.ylabel(value + units)
     plt.title(network_name + '-' + value + units)
-    plt.legend()
+    lgd = plt.legend(bbox_to_anchor=(1.04, 0), loc="lower left")
 
     # save figure
-    plt.savefig('quantization_recordings/' + network_name + '-' + value + '.png')
+    plt.savefig('quantization_recordings/' + network_name + '-' + value + '.png', bbox_extra_artists=(lgd,), bbox_inches = 'tight')
 
 if __name__ == '__main__':
     main()

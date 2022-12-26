@@ -53,23 +53,23 @@ def main():
     # paths to networks config files (one should validate config files pre-downloaded to mmsegmentaion->configs folder)
     configs = [
         'configs/bisenetv1/bisenetv1_r18-d32_4x4_1024x1024_160k_cityscapes.py',
-        'configs/bisenetv1/bisenetv1_r50-d32_in1k-pre_4x4_1024x1024_160k_cityscapes.py',
+        #'configs/bisenetv1/bisenetv1_r50-d32_in1k-pre_4x4_1024x1024_160k_cityscapes.py',
         'configs/bisenetv2/bisenetv2_fcn_4x4_1024x1024_160k_cityscapes.py',
-        'configs/segformer/segformer_mit-b0_8x1_1024x1024_160k_cityscapes.py',
-        'configs/segformer/segformer_mit-b5_8x1_1024x1024_160k_cityscapes.py',
+        #'configs/segformer/segformer_mit-b0_8x1_1024x1024_160k_cityscapes.py',
+        #'configs/segformer/segformer_mit-b5_8x1_1024x1024_160k_cityscapes.py',
         'configs/deeplabv3plus/deeplabv3plus_r18-d8_769x769_80k_cityscapes.py',
-        'configs/deeplabv3plus/deeplabv3plus_r101-d8_512x1024_80k_cityscapes.py',
+        #'configs/deeplabv3plus/deeplabv3plus_r101-d8_512x1024_80k_cityscapes.py',
     ]
 
     # paths to networks checkpoints files (one should validate checkpoints files pre-downloaded to mmsegmentaion->checkpoints folder)
     checkpoints = [
         'checkpoints/bisenetv1_r18-d32_4x4_1024x1024_160k_cityscapes_20210922_172239-c55e78e2.pth',
-        'checkpoints/bisenetv1_r50-d32_in1k-pre_4x4_1024x1024_160k_cityscapes_20210917_234628-8b304447.pth',
+        #'checkpoints/bisenetv1_r50-d32_in1k-pre_4x4_1024x1024_160k_cityscapes_20210917_234628-8b304447.pth',
         'checkpoints/bisenetv2_fcn_4x4_1024x1024_160k_cityscapes_20210902_015551-bcf10f09.pth',
-        'checkpoints/segformer_mit-b0_8x1_1024x1024_160k_cityscapes_20211208_101857-e7f88502.pth',
-        'checkpoints/segformer_mit-b5_8x1_1024x1024_160k_cityscapes_20211206_072934-87a052ec.pth',
+        #'checkpoints/segformer_mit-b0_8x1_1024x1024_160k_cityscapes_20211208_101857-e7f88502.pth',
+        #'checkpoints/segformer_mit-b5_8x1_1024x1024_160k_cityscapes_20211206_072934-87a052ec.pth',
         'checkpoints/deeplabv3plus_r18-d8_769x769_80k_cityscapes_20201226_083346-f326e06a.pth',
-        'checkpoints/deeplabv3plus_r101-d8_512x1024_80k_cityscapes_20200606_114143-068fcfe9.pth',
+        #'checkpoints/deeplabv3plus_r101-d8_512x1024_80k_cityscapes_20200606_114143-068fcfe9.pth',
     ]
 
     # run inference on all power modes and all networks
@@ -138,10 +138,10 @@ def plotAndSaveGraph(df, value, power_mode_str, units):
     plt.xlabel("Time")
     plt.ylabel(value + units)
     plt.title(power_mode_str + '-' + value + units)
-    plt.legend()
+    lgd = plt.legend(bbox_to_anchor=(1.04, 0), loc="lower left")
 
     # save figure
-    plt.savefig('tegrastats_recordings/' + power_mode_str + '-' + value + '.png')
+    plt.savefig('tegrastats_recordings/' + power_mode_str + '-' + value + '.png', bbox_extra_artists=(lgd,), bbox_inches = 'tight')
 
 if __name__ == '__main__':
     main()
