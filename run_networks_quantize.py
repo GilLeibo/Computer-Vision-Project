@@ -115,7 +115,7 @@ def plotAndSaveGraph(df, value, network_name, units):
         # Plotting both the curves simultaneously
         plt.plot(x, y, label=colname)
 
-    plt.xlabel("time")
+    plt.xlabel("Time")
     plt.ylabel(value + units)
     plt.title(network_name + '_' + value + units)
     plt.legend()
