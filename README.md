@@ -25,21 +25,25 @@ Switching between 10W power mode to any other power mode, requires a restart of 
 When running the script and input is required, you should enter "0" to run all power modes except 10W and enter "1" to run 10W power mode only. Before each selection, make sure the current power mode is corresponding to your decision.
 You will also be requested to enter your Jetson sudo password. This information is needed to switch between power modes.
 
-The output of this script will be placed in a new folder named "tegrastats_recordings" which will be placed in mmsegmentation folder. The output will include the following files:
+The output of this script will be placed in a new folder named "tegrastats_recordings" which will be placed in mmsegmentation folder. The output will include the following:
 
 For each power mode:<br>
 - Plot which contains graphs of all the networks' RAM usage VS time<br>
 - Plot which contains graphs of all the networks' GPU power consumption VS time<br>
 
 Inferences data file:<br> 
-- Excel file which contains each combination of network and power mode and their average & median RAM consumption, average & median GPU power consumption, and the time of inference.
+- Excel file which contains each combination of network and power mode and their average RAM consumption, average GPU power consumption, and the time of inference.
+
+Logs directory:<br> 
+- Contains logs of inferences.
 
 ## Quantization
 One of the project goals was to implement quantization techniques to improve inferences' times and memory consumption. We tried to implement the quantization using the following techniques:<br>
 - Mmsegmentation's function which enables quantization from 32FP to 16FP. A description of that function can be found on mmsegmentation's official website: https://mmcv.readthedocs.io/en/latest/_modules/mmcv/runner/fp16_utils.html.
 - Pytorch's Quantization library which offers some quantization techniques including Post Training Dynamic Quantization. More information can be found on the official website: https://pytorch.org/docs/stable/quantization.html#post-training-dynamic-quantization.
 
-To run the desired networks and to analyze the performances, one can download these files: run_networks_quantize.py, test_origin.py, test_quantize_mmseg.py, test_quantize_dynamic_pytorch.py. Also, one should download Cityscapes dataset: https://www.cityscapes-dataset.com/.
+To run the desired networks and to analyze the performances, one can download these files: run_networks_quantize.py, test_origin.py, test_quantize_mmseg.py, test_quantize_dynamic_pytorch.py, test_modified.py, test_modified_quantize.py. test_modified.py and test_modified_quantize.py should be placed in **mmsegmentation->mmseg->apis**.
+Also, one should download Cityscapes dataset: https://www.cityscapes-dataset.com/.
 The dataset should be placed in corresponding places at:
 **mmsegmentation->data->cityscapes->leftimg8bit->val** and 
 **mmsegmentation->data->cityscapes->gtFine->val**.
@@ -51,6 +55,7 @@ The output of the script will be placed in **mmsegmentation->quantization_record
 - mmseg_quantize_results - a folder which contains the pictures after segmentation of the network **with** mmsegmentation quantization
 - pytorch_dynamic_quantize_results - a folder which contains the pictures after segmentation of the network **with** Pytorch quantization
 - The overall results will be placed in a quantization_data Excel file that will contain information similar to that explained for run_networks.py with extra columns for the quantization technique and mIoU result.
+- Logs directory - contains logs of inferences.
 
 ## Notes
 If you stopped the scripts during runtime, you should run in the terminal the following command: **sudo tegrastats --stop**.<br>
