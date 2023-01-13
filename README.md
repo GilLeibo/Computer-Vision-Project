@@ -13,9 +13,11 @@ Copy the generated pictures (the pictures themselves, not the folder) and paste 
 make sure you also have the following route, create if not exist (val should be an empty folder):<br>
 **mmsegmentation->data->cityscapes->gtFine->val**
 
-Next, one can download the two other files in the repository - test_with_logs.py, run_networks.py.
-Place the two files in the following route:
-**mmsegmentation->tools**
+Next, one can download the other files in the repository - test_with_logs.py, run_networks.py, test_modified.py.
+<br>Place test_with_logs.py and run_networks.py in the following route:
+**mmsegmentation->tools**.
+<br>Place test_modified.py in the following route:
+**mmsegmentation->mmseg->apis**.
 
 run_networks.py is our main file and it runs the desired networks in test_with_logs.py with all of Jettson's power modes.
 Before running the file, make sure your working directory is mmsegmentation.
@@ -42,7 +44,7 @@ One of the project goals was to implement quantization techniques to improve inf
 - Mmsegmentation's function which enables quantization from 32FP to 16FP. A description of that function can be found on mmsegmentation's official website: https://mmcv.readthedocs.io/en/latest/_modules/mmcv/runner/fp16_utils.html.
 - Pytorch's Quantization library which offers some quantization techniques including Post Training Dynamic Quantization. More information can be found on the official website: https://pytorch.org/docs/stable/quantization.html#post-training-dynamic-quantization.
 
-To run the desired networks and to analyze the performances, one can download these files: run_networks_quantize.py, test_origin.py, test_quantize_mmseg.py, test_quantize_dynamic_pytorch.py, test_modified.py, test_modified_quantize.py. <br> test_modified.py and test_modified_quantize.py should be placed in **mmsegmentation->mmseg->apis**.
+To run the desired networks and to analyze the performances, one can download these files: run_networks_quantize.py, test_origin.py, test_quantize_mmseg.py, test_quantize_dynamic_pytorch.py, test_modified_quantize.py. <br> test_modified_quantize.py should be placed in **mmsegmentation->mmseg->apis**.
 <br> Also, one should download Cityscapes dataset: https://www.cityscapes-dataset.com/.
 The dataset should be placed in corresponding places at:
 **mmsegmentation->data->cityscapes->leftimg8bit->val** and 
