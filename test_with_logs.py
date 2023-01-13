@@ -26,6 +26,7 @@ from mmseg.apis import multi_gpu_test, single_gpu_test
 from mmseg.datasets import build_dataloader, build_dataset
 from mmseg.models import build_segmentor
 from mmseg.utils import build_ddp, build_dp, get_device, setup_multi_processes
+from mmseg.apis.test_modified import single_gpu_test_modified
 
 
 def parse_args():
@@ -270,10 +271,9 @@ def main():
     elapsed_inference = ""
     network_name = ""
     power_mode_str = ""
-    MEM_median = ""
     MEM_avg = ""
     GPU_power_avg = ""
-    GPU_power_median = ""
+    Total_RAM = 31011
 
     if not distributed:
         warnings.warn(
@@ -295,13 +295,7 @@ def main():
         network_name = cfg.filename.split('/')[2][:-3]
         tegra_filename = network_name + "_" + power_mode_str
 
-        # start tegrastats recording
-        cmd = 'sudo tegrastats --interval 1000 --logfile tegrastats_recordings/' + tegra_filename + '.txt'
-        Popen("exec " + cmd, shell=True)
-
-        tic = time.perf_counter()  # start timer for inference
-
-        results = single_gpu_test(
+        results, elapsed_inference, MEM_avg, GPU_power_avg = single_gpu_test_modified(
             model,
             data_loader,
             args.show,
@@ -310,47 +304,10 @@ def main():
             args.opacity,
             pre_eval=args.eval is not None and not eval_on_format_results,
             format_only=args.format_only or eval_on_format_results,
-            format_args=eval_kwargs)
-
-        toc = time.perf_counter()  # stop timer for inference
-        cmd = 'sudo tegrastats --stop'  # stop tegrastats recording
-        subprocess.run(cmd, shell=True)
-
-        # manipulate tegrastats file
-        cmd = 'cat ' + 'tegrastats_recordings/' + tegra_filename + '.txt' + ' | tr -s "/" " " > tegrastats_recordings/tmp.txt'
-        subprocess.run(cmd, shell=True)
-        cmd = 'cat ' + 'tegrastats_recordings/tmp.txt' + ' | tr -s "mw" " " > tegrastats_recordings/tmp2.txt'
-        subprocess.run(cmd, shell=True)
-
-        # write tegrastats MEM results to the current power_mode MEM csv file
-        power_mode_MEM_data = pd.read_csv('tegrastats_recordings/' + power_mode_str + '_MEM.csv', header=0)
-        tegrastats_MEM_data = pd.read_csv('tegrastats_recordings/tmp2.txt', sep=' ', usecols=[3], names=[network_name])
-        MEM_result = pd.concat([power_mode_MEM_data, tegrastats_MEM_data], axis=1)
-        MEM_result.to_csv('tegrastats_recordings/' + power_mode_str + '_MEM.csv', index=False)
-
-        # write tegrastats Power results to the current power_mode Power csv file
-        power_mode_Power_data = pd.read_csv('tegrastats_recordings/' + power_mode_str + '_Power.csv', header=0)
-        tegrastats_Power_data = pd.read_csv('tegrastats_recordings/tmp2.txt', sep=' ', usecols=[32], names=[network_name])
-        Power_result = pd.concat([power_mode_Power_data, tegrastats_Power_data], axis=1)
-        Power_result.to_csv('tegrastats_recordings/' + power_mode_str + '_Power.csv', index=False)
-
-        # remove temp  and tegrastats files
-        cmd = 'rm tegrastats_recordings/tmp.txt'
-        subprocess.run(cmd, shell=True)
-        cmd = 'rm tegrastats_recordings/tmp2.txt'
-        subprocess.run(cmd, shell=True)
-        cmd = 'rm tegrastats_recordings/' + tegra_filename + '.txt'
-        subprocess.run(cmd, shell=True)
-
-        # calc MEM avg and median
-        MEM_avg = str(round(tegrastats_MEM_data.mean()[0]))
-        MEM_median = str(round(tegrastats_MEM_data.median()[0]))
-
-        # calc Power avg and median
-        GPU_power_avg = str(round(tegrastats_Power_data.mean()[0]))
-        GPU_power_median = str(round(tegrastats_Power_data.median()[0]))
-
-        elapsed_inference = f"{toc - tic:0.2f}"
+            format_args=eval_kwargs,
+            power_mode_str=power_mode_str,
+            network_name=network_name,
+            tegra_filename=tegra_filename)
 
     else:
         model = build_ddp(
@@ -387,8 +344,11 @@ def main():
                 # remove tmp dir when cityscapes evaluation
                 shutil.rmtree(tmpdir)
 
+    # calc percent of RAM usage
+    RAM_usage = str(round((int(MEM_avg)/Total_RAM)*100))
+
     # write the results to the inferences_data file
-    cmd = 'printf "' + network_name + ' ' + power_mode_str + ' ' + elapsed_inference + ' ' + MEM_median + ' ' + MEM_avg + ' ' + GPU_power_median + ' ' + GPU_power_avg + '\n"' + ' >> ' + 'tegrastats_recordings/inferences_data.txt'
+    cmd = 'printf "' + network_name + ' ' + power_mode_str + ' ' + elapsed_inference + ' ' + MEM_avg + ' ' + RAM_usage + ' ' + GPU_power_avg + '\n"' + ' >> ' + 'tegrastats_recordings/inferences_data.txt'
     subprocess.run(cmd, shell=True)
 
 

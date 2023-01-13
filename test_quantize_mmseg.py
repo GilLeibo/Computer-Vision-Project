@@ -26,6 +26,7 @@ from mmseg.apis import multi_gpu_test, single_gpu_test
 from mmseg.datasets import build_dataloader, build_dataset
 from mmseg.models import build_segmentor
 from mmseg.utils import build_ddp, build_dp, get_device, setup_multi_processes
+from mmseg.apis.test_modified_quantize import single_gpu_test_modified_quantize
 
 
 def parse_args():
@@ -275,10 +276,9 @@ def main():
     mIoU_result = ""
     network_name = ""
     power_mode_str = ""
-    MEM_median = ""
     MEM_avg = ""
     GPU_power_avg = ""
-    GPU_power_median = ""
+    Total_RAM = 31011
 
     if not distributed:
         warnings.warn(
@@ -300,13 +300,7 @@ def main():
         network_name = cfg.filename.split('/')[2][:-3]
         tegra_filename = network_name + "_" + power_mode_str + "_mmsegQuantize"
 
-        # start tegrastats recording
-        cmd = 'sudo tegrastats --interval 1000 --logfile quantization_recordings/' + tegra_filename + '.txt'
-        Popen("exec " + cmd, shell=True)
-
-        tic = time.perf_counter()  # start timer for inference
-
-        results = single_gpu_test(
+        results, elapsed_inference, MEM_avg, GPU_power_avg = single_gpu_test_modified_quantize(
             model,
             data_loader,
             args.show,
@@ -315,47 +309,11 @@ def main():
             args.opacity,
             pre_eval=args.eval is not None and not eval_on_format_results,
             format_only=args.format_only or eval_on_format_results,
-            format_args=eval_kwargs)
-
-        toc = time.perf_counter()  # stop timer for inference
-        cmd = 'sudo tegrastats --stop'  # stop tegrastats recording
-        subprocess.run(cmd, shell=True)
-
-        # manipulate tegrastats file
-        cmd = 'cat ' + 'quantization_recordings/' + tegra_filename + '.txt' + ' | tr -s "/" " " > quantization_recordings/tmp.txt'
-        subprocess.run(cmd, shell=True)
-        cmd = 'cat ' + 'quantization_recordings/tmp.txt' + ' | tr -s "mw" " " > quantization_recordings/tmp2.txt'
-        subprocess.run(cmd, shell=True)
-
-        # write tegrastats MEM results to the network MEM csv file
-        network_MEM_data = pd.read_csv('quantization_recordings/' + network_name + '_MEM.csv', header=0)
-        tegrastats_MEM_data = pd.read_csv('quantization_recordings/tmp2.txt', sep=' ', usecols=[3], names=["Mmsegmentation_Quantization(FP16)"])
-        MEM_result = pd.concat([network_MEM_data, tegrastats_MEM_data], axis=1)
-        MEM_result.to_csv('quantization_recordings/' + network_name + '_MEM.csv', index=False)
-
-        # write tegrastats Power results to the network Power csv file
-        network_Power_data = pd.read_csv('quantization_recordings/' + network_name + '_Power.csv', header=0)
-        tegrastats_Power_data = pd.read_csv('quantization_recordings/tmp2.txt', sep=' ', usecols=[32], names=["Mmsegmentation_Quantization(FP16)"])
-        Power_result = pd.concat([network_Power_data, tegrastats_Power_data], axis=1)
-        Power_result.to_csv('quantization_recordings/' + network_name + '_Power.csv', index=False)
-
-        # remove temp  and tegrastats files
-        cmd = 'rm quantization_recordings/tmp.txt'
-        subprocess.run(cmd, shell=True)
-        cmd = 'rm quantization_recordings/tmp2.txt'
-        subprocess.run(cmd, shell=True)
-        cmd = 'rm quantization_recordings/' + tegra_filename + '.txt'
-        subprocess.run(cmd, shell=True)
-
-        # calc MEM avg and median
-        MEM_avg = str(round(tegrastats_MEM_data.mean()[0]))
-        MEM_median = str(round(tegrastats_MEM_data.median()[0]))
-
-        # calc Power avg and median
-        GPU_power_avg = str(round(tegrastats_Power_data.mean()[0]))
-        GPU_power_median = str(round(tegrastats_Power_data.median()[0]))
-
-        elapsed_inference = f"{toc - tic:0.2f}"
+            format_args=eval_kwargs,
+            power_mode_str=power_mode_str,
+            network_name=network_name,
+            tegra_filename=tegra_filename,
+            col_name="Mmsegmentation_Quantization(FP16)")
 
     else:
         model = build_ddp(
@@ -393,9 +351,12 @@ def main():
                 # remove tmp dir when cityscapes evaluation
                 shutil.rmtree(tmpdir)
 
+    # calc percent of RAM usage
+    RAM_usage = str(round((int(MEM_avg)/Total_RAM)*100))
+
     # write the results to the quantization_data file
     model_size = size_of_model(model)
-    cmd = 'printf "' + network_name + ' ' + power_mode_str + ' ' + "Mmsegmentation_Quantization(FP16)" + ' ' + elapsed_inference + ' ' + MEM_median + ' ' + MEM_avg + ' ' + GPU_power_median + ' ' + GPU_power_avg + ' ' + model_size + ' ' + mIoU_result + '\n"' + ' >> ' + 'quantization_recordings/quantization_data.txt'
+    cmd = 'printf "' + network_name + ' ' + power_mode_str + ' ' + "Mmsegmentation_Quantization(FP16)" + ' ' + elapsed_inference + ' ' + MEM_avg + ' ' + RAM_usage + ' ' + GPU_power_avg + ' ' + model_size + ' ' + mIoU_result + '\n"' + ' >> ' + 'quantization_recordings/quantization_data.txt'
     subprocess.run(cmd, shell=True)
 
 

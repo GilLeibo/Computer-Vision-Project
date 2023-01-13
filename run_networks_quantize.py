@@ -15,10 +15,14 @@ def main():
     cmd = 'mkdir -p quantization_recordings'
     subprocess.run(cmd, shell=True)
 
+    # make logs directory in quantization_recordings directory to store quantization recordings logs
+    cmd = 'mkdir -p quantization_recordings/logs'
+    subprocess.run(cmd, shell=True)
+
     # create new file for quantization data
     cmd = 'touch quantization_recordings/quantization_data.txt'
     subprocess.run(cmd, shell=True)
-    cmd = 'printf "Network Power-Mode Quantization Time[sec] MEDIAN-MEM-USED-SIZE[MB] AVG-MEM-USED-SIZE[MB] MEDIAN-GPU-POWER[mW] AVG-GPU-POWER[mW] Model-Size[KB] mIoU' + '\n"' +' >> ' + 'quantization_recordings/quantization_data.txt'
+    cmd = 'printf "Network Power-Mode Quantization AVG-TIME-PER-PICTURE[sec] AVG-MEM-USED-SIZE[MB] AVG-MEM-USED-SIZE[percent] AVG-GPU-POWER[mW] Model-Size[KB] mIoU' + '\n"' +' >> ' + 'quantization_recordings/quantization_data.txt'
     subprocess.run(cmd, shell=True)
 
     # ask sudo password from user to be able to activate tegrastats
@@ -40,7 +44,7 @@ def main():
 
     for config, checkpoint in zip(configs, checkpoints):
 
-        # create csv files for the network MEM and Power
+        # create csv files for the MEM, Power and TPP (Time per picture)
         network_name = config.split('/')[2][:-3]
         cmd = 'touch quantization_recordings/' + network_name + '_MEM.csv'
         subprocess.run(cmd, shell=True)
@@ -49,6 +53,10 @@ def main():
         cmd = 'touch quantization_recordings/' + network_name + '_Power.csv'
         subprocess.run(cmd, shell=True)
         cmd = 'printf "Empty\n" >> ' + 'quantization_recordings/' + network_name + '_Power.csv'
+        subprocess.run(cmd, shell=True)
+        cmd = 'touch quantization_recordings/' + network_name + '_TPP.csv'
+        subprocess.run(cmd, shell=True)
+        cmd = 'printf "Empty\n" >> ' + 'quantization_recordings/' + network_name + '_TPP.csv'
         subprocess.run(cmd, shell=True)
 
         # run regular model. Store results in quantization_recordings->origin_results
@@ -63,20 +71,28 @@ def main():
         cmd = 'python tools/test_quantize_dynamic_pytorch.py ' + config + ' ' + checkpoint + ' ' + '--show-dir quantization_recordings/pytorch_dynamic_quantize_results --eval mIoU'
         subprocess.run(cmd, shell=True)
 
-        # remove first empty column of csv files for the network MEM and Power
+        # remove first empty column of csv files for the network MEM, Power and TPP
         network_MEM_data = pd.read_csv('quantization_recordings/' + network_name + '_MEM.csv', header=0)
         network_MEM_data.drop(columns=network_MEM_data.columns[0], axis=1, inplace=True)
+        network_MEM_data.to_csv('quantization_recordings/' + network_name + '_MEM.csv', index=False)
         network_Power_data = pd.read_csv('quantization_recordings/' + network_name + '_Power.csv', header=0)
         network_Power_data.drop(columns=network_Power_data.columns[0], axis=1, inplace=True)
+        network_Power_data.to_csv('quantization_recordings/' + network_name + '_Power.csv', index=False)
+        network_TPP_data = pd.read_csv('quantization_recordings/' + network_name + '_TPP.csv', header=0)
+        network_TPP_data.drop(columns=network_TPP_data.columns[0], axis=1, inplace=True)
+        network_TPP_data.to_csv('quantization_recordings/' + network_name + '_TPP.csv', index=False)
 
-        # Plot and save graphs for network MEM and Power
-        plotAndSaveGraph(network_MEM_data, "MEM", network_name, "[MB]")
-        plotAndSaveGraph(network_Power_data, "Power", network_name, "[mW]")
+        # Plot and save graphs for network MEM, Power and TPP
+        plotAndSaveGraph(network_MEM_data, "Average MEM", network_name, "[MB]", "Average MEM per picture")
+        plotAndSaveGraph(network_Power_data, "Average Power", network_name, "[mW]", "Average Power per picture")
+        plotAndSaveGraph(network_TPP_data, "Time", network_name, "[sec]", "Time per picture")
 
-        # delete csv files of MEM and Power of the network
-        cmd = 'rm quantization_recordings/' + network_name + '_MEM.csv'
+        # move csv files of MEM, Power and TPP to logs directory
+        cmd = 'mv quantization_recordings/' + network_name + '_MEM.csv' + ' quantization_recordings/logs'
         subprocess.run(cmd, shell=True)
-        cmd = 'rm quantization_recordings/' + network_name + '_Power.csv'
+        cmd = 'mv quantization_recordings/' + network_name + '_Power.csv' + ' quantization_recordings/logs'
+        subprocess.run(cmd, shell=True)
+        cmd = 'mv quantization_recordings/' + network_name + '_TPP.csv' + ' quantization_recordings/logs'
         subprocess.run(cmd, shell=True)
 
 
@@ -103,7 +119,7 @@ def main():
     diff_origin_pytorch.save("quantization_recordings/diff_NoQuantization-PytorchDynamicQuantization.png")
 
 
-def plotAndSaveGraph(df, value, network_name, units):
+def plotAndSaveGraph(df, value, network_name, units, title):
 
     # clear figure state (so plots won't override)
     plt.clf()
@@ -115,9 +131,9 @@ def plotAndSaveGraph(df, value, network_name, units):
         # Plotting both the curves simultaneously
         plt.plot(x, y, label=colname)
 
-    plt.xlabel("Time")
+    plt.xlabel("Picture index")
     plt.ylabel(value + units)
-    plt.title(network_name + '-' + value + units)
+    plt.title(network_name + ' - ' + title)
     lgd = plt.legend(bbox_to_anchor=(1.04, 0), loc="lower left")
 
     # save figure

@@ -7,17 +7,21 @@ import numpy as np
 def main():
 
     # delete all tegrastats_recordings directory content if exist
-    cmd = 'rm tegrastats_recordings/*'
+    cmd = 'rm -r tegrastats_recordings'
     subprocess.run(cmd, shell=True)
 
     # make tegrastats_recordings directory in mmsegmentation directory to store tegrastats recordings
     cmd = 'mkdir -p tegrastats_recordings'
     subprocess.run(cmd, shell=True)
 
+    # make logs directory in tegrastats_recordings directory to store tegrastats recordings logs
+    cmd = 'mkdir -p tegrastats_recordings/logs'
+    subprocess.run(cmd, shell=True)
+
     # create new file for inferences data
     cmd = 'touch ' + 'tegrastats_recordings/inferences_data.txt'
     subprocess.run(cmd, shell=True)
-    cmd = 'printf "Network Power-Mode Time[sec] MEDIAN-MEM-USED-SIZE[MB] AVG-MEM-USED-SIZE[MB] MEDIAN-GPU-POWER[mW] AVG-GPU-POWER[mW]' + '\n"' + ' >> ' + 'tegrastats_recordings/inferences_data.txt'
+    cmd = 'printf "Network Power-Mode AVG-TIME-PER-PICTURE[sec] AVG-MEM-USED-SIZE[MB] AVG-MEM-USED-SIZE[percent] AVG-GPU-POWER[mW]' + '\n"' + ' >> ' + 'tegrastats_recordings/inferences_data.txt'
     subprocess.run(cmd, shell=True)
 
     # ask sudo password from user to be able to change power modes
@@ -83,7 +87,7 @@ def main():
         cmd_out = subprocess.run(cmd, shell=True, capture_output=True, text=True)
         power_mode_str = cmd_out.stdout.splitlines()[0].split()[-1]
 
-        # create csv files for the current power_mode: MEM and Power
+        # create csv files for the current power_mode: MEM, Power and TPP (Time per picture)
         cmd = 'touch tegrastats_recordings/' + power_mode_str + '_MEM.csv'
         subprocess.run(cmd, shell=True)
         cmd = 'printf "Empty\n" >> ' + 'tegrastats_recordings/' + power_mode_str + '_MEM.csv'
@@ -92,6 +96,10 @@ def main():
         subprocess.run(cmd, shell=True)
         cmd = 'printf "Empty\n" >> ' + 'tegrastats_recordings/' + power_mode_str + '_Power.csv'
         subprocess.run(cmd, shell=True)
+        cmd = 'touch tegrastats_recordings/' + power_mode_str + '_TPP.csv'
+        subprocess.run(cmd, shell=True)
+        cmd = 'printf "Empty\n" >> ' + 'tegrastats_recordings/' + power_mode_str + '_TPP.csv'
+        subprocess.run(cmd, shell=True)
 
         for config, checkpoint in zip(configs, checkpoints):
 
@@ -99,20 +107,28 @@ def main():
             cmd = 'python tools/test_with_logs.py ' + config + ' ' + checkpoint + ' ' + '--show-dir results'
             subprocess.run(cmd, shell=True)
 
-        # remove first empty column of csv files for the current power_mode MEM and Power
+        # remove first empty column of csv files for the current power_mode MEM, Power and TPP
         power_mode_MEM_data = pd.read_csv('tegrastats_recordings/' + power_mode_str + '_MEM.csv', header=0)
         power_mode_MEM_data.drop(columns=power_mode_MEM_data.columns[0], axis=1, inplace=True)
+        power_mode_MEM_data.to_csv('tegrastats_recordings/' + power_mode_str + '_MEM.csv', index=False)
         power_mode_Power_data = pd.read_csv('tegrastats_recordings/' + power_mode_str + '_Power.csv', header=0)
         power_mode_Power_data.drop(columns=power_mode_Power_data.columns[0], axis=1, inplace=True)
+        power_mode_Power_data.to_csv('tegrastats_recordings/' + power_mode_str + '_Power.csv', index=False)
+        power_mode_TPP_data = pd.read_csv('tegrastats_recordings/' + power_mode_str + '_TPP.csv', header=0)
+        power_mode_TPP_data.drop(columns=power_mode_TPP_data.columns[0], axis=1, inplace=True)
+        power_mode_TPP_data.to_csv('tegrastats_recordings/' + power_mode_str + '_TPP.csv', index=False)
 
-        # Plot and save graphs for network MEM and Power
-        plotAndSaveGraph(power_mode_MEM_data, "MEM", power_mode_str, "[MB]")
-        plotAndSaveGraph(power_mode_Power_data, "Power", power_mode_str, "[mW]")
+        # Plot and save graphs for network MEM, Power and TPP
+        plotAndSaveGraph(power_mode_MEM_data, "Average MEM", power_mode_str, "[MB]", "Average MEM per picture")
+        plotAndSaveGraph(power_mode_Power_data, "Average Power", power_mode_str, "[mW]", "Average Power per picture")
+        plotAndSaveGraph(power_mode_TPP_data, "Time", power_mode_str, "[sec]", "Time per picture")
 
-        # delete csv files of MEM and Power of the current power_mode
-        cmd = 'rm tegrastats_recordings/' + power_mode_str + '_MEM.csv'
+        # move csv files of MEM, Power and TPP of the current power_mode to logs directory
+        cmd = 'mv tegrastats_recordings/' + power_mode_str + '_MEM.csv' + ' tegrastats_recordings/logs'
         subprocess.run(cmd, shell=True)
-        cmd = 'rm tegrastats_recordings/' + power_mode_str + '_Power.csv'
+        cmd = 'mv tegrastats_recordings/' + power_mode_str + '_Power.csv' + ' tegrastats_recordings/logs'
+        subprocess.run(cmd, shell=True)
+        cmd = 'mv tegrastats_recordings/' + power_mode_str + '_TPP.csv' + ' tegrastats_recordings/logs'
         subprocess.run(cmd, shell=True)
 
     # create Excel file of inferences_data.txt results and delete inferences_data.txt
@@ -122,7 +138,7 @@ def main():
     subprocess.run(cmd, shell=True)
 
 
-def plotAndSaveGraph(df, value, power_mode_str, units):
+def plotAndSaveGraph(df, value, power_mode_str, units, title):
 
     # clear figure state (so plots won't override)
     plt.clf()
@@ -134,9 +150,9 @@ def plotAndSaveGraph(df, value, power_mode_str, units):
         # Plotting both the curves simultaneously
         plt.plot(x, y, label=colname)
 
-    plt.xlabel("Time")
+    plt.xlabel("Picture index")
     plt.ylabel(value + units)
-    plt.title(power_mode_str + '-' + value + units)
+    plt.title(power_mode_str + ' - ' + title)
     lgd = plt.legend(bbox_to_anchor=(1.04, 0), loc="lower left")
 
     # save figure
