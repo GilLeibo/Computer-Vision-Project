@@ -124,7 +124,7 @@ def single_gpu_test_modified_quantize(model,
             subprocess.run(cmd, shell=True)
 
             tegrastats_MEM_data = pd.read_csv('quantization_recordings/tmp2.txt', sep=' ', usecols=[3], names=[col_name])
-            tegrastats_Power_data = pd.read_csv('quantization_recordings/tmp2.txt', sep=' ', usecols=[32], names=[col_name])
+            tegrastats_Power_data = pd.read_csv('quantization_recordings/tmp2.txt', sep=' ', usecols=[24], names=[col_name])
 
             # remove temp  and tegrastats files
             cmd = 'rm quantization_recordings/tmp.txt'

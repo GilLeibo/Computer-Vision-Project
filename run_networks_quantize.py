@@ -84,7 +84,7 @@ def main():
 
         # Plot and save graphs for network MEM, Power and TPP
         plotAndSaveGraph(network_MEM_data, "Average MEM", network_name, "[MB]", "Average MEM per picture")
-        plotAndSaveGraph(network_Power_data, "Average Power", network_name, "[mW]", "Average Power per picture")
+        plotAndSaveGraph(network_Power_data, "Average Power", network_name, "[mW]", "Average GPU Power per picture")
         plotAndSaveGraph(network_TPP_data, "Time", network_name, "[sec]", "Time per picture")
 
         # move csv files of MEM, Power and TPP to logs directory

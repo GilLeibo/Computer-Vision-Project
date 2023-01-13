@@ -124,7 +124,7 @@ def single_gpu_test_modified(model,
 
             tegrastats_MEM_data = pd.read_csv('tegrastats_recordings/tmp2.txt', sep=' ', usecols=[3],
                                               names=[network_name])
-            tegrastats_Power_data = pd.read_csv('tegrastats_recordings/tmp2.txt', sep=' ', usecols=[32],
+            tegrastats_Power_data = pd.read_csv('tegrastats_recordings/tmp2.txt', sep=' ', usecols=[24],
                                                 names=[network_name])
 
             # remove temp  and tegrastats files
